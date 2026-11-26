@@ -9,7 +9,7 @@
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 280px; }
 button, input, select, textarea { font: inherit; }
-button { cursor: pointer; }
+button { cursor: pointer; touch-action: manipulation; }
 button:disabled { cursor: default; opacity: .62; }
 :focus-visible { outline: 3px solid #bc6337; outline-offset: 3px; }
 h1, h2, p { margin: 0; }
@@ -188,6 +188,7 @@ svg { flex: 0 0 auto; }
 textarea, input, select { color: inherit; background: #fff; border: 1px solid #a8b7ae; border-radius: 11px; padding: 7px; }
 textarea { width: 100%; }
 .next { margin-top: 12px; }
+.review-action { margin: 0 0 9px; }
 .result { text-align: center; }
 .result h1 { margin: 8px 0; font-size: clamp(2.3rem,7vw,3.9rem); }
 .award { fill: #ffcc64; color: #ae731e; }

@@ -256,6 +256,9 @@ export default function Workshop({capsuleId, capsule, initial, buddy, onBack, on
               <strong>{card.label}</strong>
             </button>)}
           </div>
+          <button type="button" className="primary next review-action" onClick={review} disabled={busy || map.every(value => value === null)}>
+            {reviewed ? 'Volver a revisar' : 'Revisar mi mapa'} <ArrowRight size={22} />
+          </button>
           <div className="extra-controls">
             <button type="button" className="control" onClick={() => {setHinted(true);setHintVisible(true);}}><Lightbulb size={18} /> Pista</button>
             <details className="recap">
@@ -268,12 +271,8 @@ export default function Workshop({capsuleId, capsule, initial, buddy, onBack, on
           <Explanation capsuleId={capsuleId} activity={activity} episode={episode} slot={selected}
             onInterpret={applyParts} onBusy={setBusy} busy={busy} />
         </>}
-        {confirmed
-          ? <button type="button" className="primary next" onClick={nextCase}>
+        {confirmed && <button type="button" className="primary next" onClick={nextCase}>
               {isNew ? 'Guardar mi estrella' : 'Probar otro caso'} <ArrowRight size={22} />
-            </button>
-          : <button type="button" className="primary next" onClick={review} disabled={busy || map.every(value => value === null)}>
-              {reviewed ? 'Volver a revisar' : 'Revisar mi mapa'} <ArrowRight size={22} />
             </button>}
       </>}
     </section>
