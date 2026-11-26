@@ -1,19 +1,8 @@
 import {useEffect, useRef, useState} from 'react';
 import {ArrowRight, Check, ChevronLeft, Ear, Lightbulb, Mic, Pencil, RotateCcw, Volume2} from 'lucide-react';
 import {filterParts} from './capsules.mjs';
+import {useNarration} from './hooks/use-narration.js';
 import {localParts} from './interpreter.mjs';
-
-const canListen = 'speechSynthesis' in window;
-
-function speak(text) {
-  speechSynthesis.cancel();
-  const phrase = new SpeechSynthesisUtterance(text);
-  const spanish = speechSynthesis.getVoices().find(voice => voice.lang.startsWith('es'));
-  if (spanish) phrase.voice = spanish;
-  phrase.lang = spanish?.lang || 'es';
-  phrase.rate = .85;
-  speechSynthesis.speak(phrase);
-}
 
 export function Avatar({buddy, className = ''}) {
   return <span className={'avatar ' + className} aria-hidden="true">
@@ -151,6 +140,7 @@ export default function Workshop({capsuleId, capsule, initial, buddy, onBack, on
   const [hintVisible, setHintVisible] = useState(false);
   const [busy, setBusy] = useState(false);
   const heading = useRef(null);
+  const narration = useNarration();
   const activity = capsule.cases[episode];
   const cards = Object.fromEntries(activity.cards.map(card => [card.id,card]));
   const gap = activity.steps.findIndex((step, index) => map[index] !== step.answer);
@@ -167,7 +157,7 @@ export default function Workshop({capsuleId, capsule, initial, buddy, onBack, on
 
   useEffect(() => {
     heading.current?.focus();
-    return () => window.speechSynthesis?.cancel();
+    return narration.stop;
   }, [episode, phase]);
 
   function selectStep(index) {
@@ -220,10 +210,10 @@ export default function Workshop({capsuleId, capsule, initial, buddy, onBack, on
     <section className="workshop-panel">
       <div className="mission-header">
         <span className="stage">{label}</span>
-        {canListen && <button type="button" className="control sound" onClick={() => speak(
+        <button type="button" className="control sound" onClick={() => narration.narrate(
           [phase === 'look' ? activity.setup : question, reviewMessage, hintVisible ? activity.steps[selected].hint : '',
             phase === 'teach' && !confirmed ? activity.cards.map(card => card.label).join('. ') : ''].join(' ')
-        )}><Volume2 size={20} /> Escuchar</button>}
+        )}><Volume2 size={20} /> Escuchar</button>
       </div>
       <div className="speech-bubble">
         <Avatar buddy={buddy} />
@@ -264,7 +254,7 @@ export default function Workshop({capsuleId, capsule, initial, buddy, onBack, on
             <details className="recap">
               <summary><Ear size={18} /> Ver la escena</summary>
               <Scene activity={activity} practice={false} />
-              {canListen && <button className="control" type="button" onClick={() => speak(activity.setup)}><Volume2 size={17} /> Escuchar escena</button>}
+              <button className="control" type="button" onClick={() => narration.narrate(activity.setup)}><Volume2 size={17} /> Escuchar escena</button>
             </details>
           </div>
           {hintVisible && <p role="status" className="hint">{activity.steps[selected].hint}</p>}
