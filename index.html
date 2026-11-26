@@ -7,15 +7,24 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header><span aria-hidden="true">✿</span> Escuela Semilla</header>
+  <header><div class="brand"><span aria-hidden="true">✿</span> Escuela Semilla</div></header>
   <main>
     <section id="zones">
-      <p id="reward" class="reward">⭐ 0 de 3 estrellas</p>
-      <h1>Elige dónde jugar</h1>
+      <div class="welcome">
+        <div class="welcomeCopy">
+          <h1>Hoy tú enseñas.</h1>
+          <p>Elige una zona y juega con tu personaje.</p>
+        </div>
+        <img src="art/aula.webp" width="800" height="533" alt="">
+      </div>
+      <div class="zoneTitle">
+        <h2>Elige tu zona</h2>
+        <p id="reward" class="reward">⭐ 0 de 3 estrellas</p>
+      </div>
       <div class="zoneGrid">
-        <button data-zone="math"><span class="scene math"></span><strong>Matemáticas</strong></button>
-        <button data-zone="story"><span class="scene story"></span><strong>Lenguaje</strong></button>
-        <button data-zone="history"><span class="scene history"></span><strong>Historia</strong></button>
+        <button data-zone="math" aria-labelledby="mathLabel"><img class="scene" src="art/contar.webp" alt=""><strong id="mathLabel">Matemáticas</strong><span>Junta semillas <span aria-hidden="true">→</span></span></button>
+        <button data-zone="story" aria-labelledby="storyLabel"><img class="scene" src="art/relato.webp" alt=""><strong id="storyLabel">Lenguaje</strong><span>Cuenta un cuento <span aria-hidden="true">→</span></span></button>
+        <button data-zone="history" aria-labelledby="historyLabel"><img class="scene" src="art/recuerdos.webp" alt=""><strong id="historyLabel">Historia</strong><span>Viaja al pasado <span aria-hidden="true">→</span></span></button>
       </div>
     </section>
 
@@ -44,7 +53,7 @@
 
     <section id="lesson" hidden aria-labelledby="prompt">
       <div class="lessonTop">
-        <p id="stage"></p>
+        <div class="lessonLabels"><p id="stage"></p><p id="phase"></p></div>
         <button id="listen" hidden>🔊 Escuchar</button>
       </div>
       <div class="buddy">
@@ -72,6 +81,7 @@
       <div class="bigStar" aria-hidden="true">⭐</div>
       <h2 id="finishTitle" tabindex="-1">¡Gracias, profe!</h2>
       <p id="result"></p>
+      <p id="challengeResult"></p>
       <button id="again" class="primary">Elegir otra zona</button>
     </section>
   </main>

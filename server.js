@@ -4,8 +4,8 @@ const path = require('node:path');
 const {extract} = require('./logic');
 const assets = {'/':'index.html','/index.html':'index.html','/style.css':'style.css','/logic.js':'logic.js','/app.js':'app.js'};
 for(const file of ['character.js','art/generate.js','art/numjs.js','art/sketch_rnn.js','art/cat.json','art/rabbit.json','art/bird.json']) assets['/'+file]=file;
-assets['/art/zonas.png']='art/zonas.png';
-const mime = {'.html':'text/html','.css':'text/css','.js':'text/javascript','.json':'application/json','.png':'image/png'};
+for (const name of ['aula', 'contar', 'relato', 'recuerdos']) assets['/art/'+name+'.webp'] = 'art/'+name+'.webp';
+const mime = {'.html':'text/html','.css':'text/css','.js':'text/javascript','.json':'application/json','.webp':'image/webp'};
 
 async function interpret(input) {
   if (process.env.MODEL_URL && process.env.MODEL_NAME) {

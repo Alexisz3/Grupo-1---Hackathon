@@ -2,23 +2,33 @@
 
 :root {
   font: 17px/1.4 "Trebuchet MS", system-ui, sans-serif;
-  color: #203b42;
-  background: #fff4d9;
+  color: #213b2f;
+  background: #fbf8ef;
 }
 
 * { box-sizing: border-box; }
 body { margin: 0; }
-header {
+.brand {
   display: flex;
   gap: 10px;
   align-items: center;
-  padding: 10px max(5vw, 18px);
-  background: #fffaf0;
-  border-bottom: 1px solid #ebd9a9;
+  max-width: 1080px;
+  margin: auto;
+  padding: 12px 18px;
   font-weight: bold;
 }
-header span { color: #a95330; font-size: 1.6rem; }
-main { max-width: 980px; padding: 14px 14px 42px; margin: auto; }
+header { background: #fffdf7; border-bottom: 1px solid #ebe7da; }
+header span {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  color: #fffdf7;
+  background: #356449;
+  border-radius: 12px;
+  font-size: 1.5rem;
+}
+main { max-width: 1080px; padding: clamp(14px, 3vw, 28px) 18px 44px; margin: auto; }
 section {
   border-radius: 26px;
   background: #fffdfa;
@@ -56,29 +66,47 @@ canvas {
   margin: 9px 0;
   touch-action: none;
 }
-#zones { text-align: center; background: #fff1c8; }
-#zones h1 { margin: 12px 0 24px; color: #175777; }
-.reward { color: #795218; font-weight: bold; }
-.zoneGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
-.zoneGrid button {
+#zones { padding: 0; border: 0; background: transparent; }
+.welcome {
   display: grid;
-  gap: 9px;
-  background: white;
-  border: 4px solid white;
-  padding: 0 0 10px;
-  box-shadow: 0 4px #d2b47c;
+  grid-template-columns: 1fr 1fr;
+  align-items: stretch;
+  background: #dce9d6;
+  border-radius: 29px;
   overflow: hidden;
 }
-.zoneGrid button:hover { border-color: #dca940; }
-.zoneGrid strong { font-size: clamp(1rem, 2.5vw, 1.35rem); }
+.welcomeCopy { display: grid; align-content: center; padding: clamp(20px, 5vw, 54px); gap: 12px; }
+.welcome h1 { font-size: clamp(2.25rem, 6.5vw, 4.65rem); letter-spacing: -.06em; }
+.welcome p { max-width: 30ch; color: #314c3a; }
+.welcome img { width: 100%; height: 100%; min-height: 0; object-fit: cover; object-position: 65% 55%; }
+.zoneTitle { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 26px 0 12px; }
+.zoneTitle h2 { font-size: clamp(1.25rem, 3vw, 1.8rem); }
+.reward { color: #77511d; font-size: .9rem; font-weight: bold; }
+.zoneGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(9px, 2vw, 18px); }
+.zoneGrid button {
+  display: grid;
+  gap: 4px;
+  text-align: left;
+  background: #fffdf9;
+  border: 1px solid #e5e4d9;
+  border-radius: 22px;
+  padding: 7px 7px 12px;
+  box-shadow: 0 3px 0 #e8e7db;
+  overflow: hidden;
+}
+.zoneGrid button:hover { border-color: #7a9976; background: #f4f7eb; }
+.zoneGrid strong { padding: 4px 8px 0; font-size: clamp(1.05rem, 2.5vw, 1.45rem); }
+.zoneGrid button > span { display: flex; justify-content: space-between; gap: 4px; padding: 0 8px; color: #47594d; font-size: .9rem; font-weight: normal; }
+.zoneGrid button.completed > span > span { font-size: 0; }
+.zoneGrid button.completed > span > span::after { content: '★'; font-size: 1rem; color: #855819; }
 .scene {
   display: block;
-  aspect-ratio: 1.12;
-  background: center / 360% auto no-repeat url('art/zonas.png');
+  width: 100%;
+  aspect-ratio: 1.9;
+  object-fit: cover;
+  border-radius: 15px;
+  background: #edf3e7;
 }
-.scene.math { background-position: 6% 52%; }
-.scene.story { background-position: 51.2% 52%; }
-.scene.history { background-position: 95% 52%; }
 
 #activityNav, .lessonTop {
   display: flex;
@@ -88,12 +116,17 @@ canvas {
 }
 #activityNav { max-width: 700px; margin: 0 auto 10px; }
 #setup, #lesson, #done { max-width: 700px; margin: auto; }
+#lesson { --tint: #e5efdc; --soft: #f0f6eb; --line: #b9cdb1; --ink: #3d664b; }
+#lesson[data-zone="story"] { --tint: #eee5f6; --soft: #f6f0fa; --line: #d6c5e2; --ink: #694678; }
+#lesson[data-zone="history"] { --tint: #fae8d7; --soft: #fff4e8; --line: #e2c6a7; --ink: #86532f; }
 #avatars { display: flex; gap: 6px; flex-wrap: wrap; margin: 12px 0; }
 #start { margin-top: 12px; }
 #artStatus { margin-top: 8px; }
 #artPreview { border-radius: 20px; }
 
-#stage { font-size: .94rem; font-weight: bold; color: #446855; }
+.lessonLabels { display: flex; flex-wrap: wrap; gap: 5px 10px; align-items: center; }
+#stage { font-size: .94rem; font-weight: bold; color: var(--ink); }
+#phase { border: 1px solid var(--line); background: var(--soft); border-radius: 20px; padding: 2px 8px; font-size: .78rem; }
 .buddy {
   display: flex;
   gap: 12px;
@@ -101,14 +134,15 @@ canvas {
   min-height: 82px;
   margin: 10px 0 14px;
   padding: 10px 12px;
-  background: #ffefc8;
+  background: var(--tint);
   border-radius: 18px;
 }
-#buddyName { color: #6c4c22; font-size: .9rem; }
+#buddyName { color: var(--ink); font-size: .9rem; }
+#prompt:focus { outline: none; }
 #face { flex: 0 0 auto; font-size: 2.5rem; line-height: 1; }
 #face img { display: block; width: 54px; border-radius: 12px; }
 
-#board { display: grid; align-content: center; min-height: 108px; background: #edf5e6; border-radius: 18px; padding: 11px; }
+#board { display: grid; align-content: center; min-height: 108px; background: var(--soft); border-radius: 18px; padding: 11px; }
 .seedGroup { text-align: center; font-size: clamp(2rem, 8vw, 3.5rem); }
 .seedGroup:empty { display: none; }
 .garden, #choices { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; }
@@ -130,7 +164,7 @@ canvas {
   list-style: none;
   text-align: center;
 }
-.pictureMap li { border: 2px solid #bacfb5; border-radius: 13px; background: white; padding: 5px; overflow-wrap: anywhere; }
+.pictureMap li { border: 2px solid var(--line); border-radius: 13px; background: white; padding: 7px 5px; overflow-wrap: anywhere; }
 .pictureMap span { display: block; font-size: clamp(1.5rem, 4vw, 2.1rem); line-height: 1.1; margin-bottom: 5px; }
 .pictureMap [aria-current] { border-color: #af761b; background: #fff4ce; }
 .tile .nest, .pictureMap .nest {
@@ -146,11 +180,21 @@ canvas {
 #done { text-align: center; }
 .bigStar { font-size: 4rem; }
 #result { margin: 10px 0; }
+#challengeResult { margin-bottom: 14px; font-weight: bold; color: #346049; }
+.challengeContext { font-size: clamp(1rem, 3vw, 1.2rem); text-align: center; }
+.challengePicture { display: block; text-align: center; font-size: clamp(1.65rem, 6vw, 2.8rem); }
 
 @media (max-width: 600px) {
+  .welcome { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); }
+  .welcomeCopy { padding: 15px; gap: 7px; }
+  .welcome h1 { font-size: clamp(1.65rem, 7vw, 2.3rem); }
+  .welcome p { font-size: .88rem; }
+  .welcome img { object-position: 64% 50%; }
+  .zoneTitle { margin-top: 18px; }
   .zoneGrid { grid-template-columns: 1fr; }
-  .zoneGrid button { grid-template-columns: 88px 1fr; align-items: center; text-align: left; padding: 0 12px 0 0; }
-  .scene { width: 88px; }
+  .zoneGrid button { grid-template-columns: 96px 1fr; grid-template-rows: auto auto; gap: 0 7px; align-items: start; padding: 5px; }
+  .zoneGrid strong { align-self: end; }
+  .scene { grid-row: span 2; align-self: center; aspect-ratio: 1.34; }
   #choices .tile { padding-inline: 9px; }
   .pictureMap li { font-size: .86rem; }
 }

@@ -2,6 +2,8 @@
 
 Prototipo del aula interactiva para primer grado. En Matemáticas, el niño mueve y cuenta semillas. En Lenguaje, ordena un cuento. En Historia, arma una línea del tiempo con los recuerdos de Ana. Cada cápsula termina con un mapa ilustrado. El personaje se puede cambiar o dibujar desde cualquier zona.
 
+El personaje conserva las partes que el niño ya mostró y pregunta por el siguiente paso. Cada zona termina con un caso nuevo. La pantalla final indica si el niño acertó en el primer intento o si volvió a intentar. El resultado de esa actividad solo se muestra durante la sesión.
+
 ## Ejecutar
 
 Con Node.js 22 o posterior, ejecutar `node server.js` y abrir http://127.0.0.1:3000. También se puede abrir index.html directamente para la versión local.

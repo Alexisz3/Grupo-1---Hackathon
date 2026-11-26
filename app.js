@@ -8,8 +8,6 @@ let avatar = '🐥';
 let drawing = false;
 let dragging = false;
 let zone = 'math';
-let round = 0;
-let placed = 0;
 let view = 'zones';
 let nameText = 'Pipo';
 let activityVersion = 0;
@@ -109,10 +107,9 @@ for (const control of zoneButtons) {
   control.onclick = () => {
     zone = control.dataset.zone;
     activityVersion++;
-    round = 0;
-    placed = 0;
     updateBuddy();
     show('lesson');
+    $('lesson').dataset.zone = zone;
     if (zone === 'math') startMath();
     else showSequenceIntro();
   };
@@ -127,9 +124,10 @@ function speak(text) {
   speechSynthesis.speak(voice);
 }
 
-function screen(question, audio = question) {
+function screen(question, audio = question, phase = 'Practica') {
   window.speechSynthesis?.cancel();
-  $('stage').textContent = zoneButtons.find(control => control.dataset.zone === zone).textContent.trim();
+  $('stage').textContent = zoneButtons.find(control => control.dataset.zone === zone).querySelector('strong').textContent;
+  $('phase').textContent = phase;
   $('prompt').textContent = question;
   $('board').replaceChildren();
   $('choices').replaceChildren();
@@ -140,7 +138,11 @@ function screen(question, audio = question) {
   $('answer').value = '';
   $('send').disabled = false;
   $('listen').hidden = !window.speechSynthesis;
-  $('listen').onclick = () => speak([audio, $('feedback').textContent].join(' '));
+  $('listen').onclick = () => {
+    const options = [...$('choices').querySelectorAll('button:not([hidden])')]
+      .map(choice => choice.getAttribute('aria-label') || choice.textContent);
+    speak([audio, ...options, $('feedback').textContent].join('. '));
+  };
   $('prompt').focus();
 }
 
@@ -150,15 +152,19 @@ function next(text, action) {
   $('next').hidden = false;
 }
 
-function finish(result) {
+function finish(result, independent) {
   completed.add(zone);
+  zoneButtons.find(control => control.dataset.zone === zone).classList.add('completed');
   $('reward').textContent = '⭐ ' + completed.size + ' de 3 estrellas';
   $('result').textContent = result;
+  $('challengeResult').textContent = independent ? 'Reto nuevo: ¡a la primera!' : 'Reto nuevo: ¡lo lograste al volver a intentar!';
   show('done');
   $('finishTitle').focus();
 }
 
-const rounds = [[3, 2], [4, 2]];
+const first = 3;
+const extra = 2;
+const total = first + extra;
 let explanation = {};
 
 function seedGroup(parent, count, symbol, label) {
@@ -172,7 +178,6 @@ function seedGroup(parent, count, symbol, label) {
 }
 
 function startMath() {
-  const [first, extra] = rounds[round];
   let added = 0;
   explanation = {};
   screen('Pon ' + extra + (extra === 1 ? ' semilla más' : ' semillas más'), 'En la caja hay ' + first + ' semillas. Toca ' + extra + ' de las que están abajo para ponerlas en la caja.');
@@ -198,8 +203,6 @@ function startMath() {
 }
 
 function showTotal() {
-  const [first, extra] = rounds[round];
-  const total = first + extra;
   screen('¿Cuántas hay juntas?', 'Tienes ' + first + ' semillas y pusiste ' + extra + ' más. ¿Cuántas hay juntas?');
   const garden = document.createElement('div');
   garden.className = 'garden';
@@ -220,10 +223,10 @@ function showTotal() {
     $('feedback').textContent = 'Toca cada semilla para contar.';
     garden.querySelector('button').focus();
   };
-  const options = round === 0 ? [total + 1, total - 1, total] : [total, total + 1, total - 1];
+  const options = [total + 1, total - 1, total];
   for (const number of options) {
     const option = button($('choices'), String(number), () => {
-      if (number === total) showMathMap();
+      if (number === total) teachMathMap();
       else $('feedback').textContent = 'Cuenta todas y prueba otra vez.';
     });
     option.className = 'tile number';
@@ -252,14 +255,38 @@ function mapTiles(labels, icons, active = -1) {
   $('board').append(map);
 }
 
+function teachMathMap() {
+  const facts = [
+    {label: first + ' al inicio', icon: '🌱'.repeat(first)},
+    {label: extra + ' más', icon: '🌰'.repeat(extra)},
+    {label: total + ' juntas', icon: '🌱'.repeat(total)}
+  ];
+  teachMissing({
+    facts,
+    slots: ['Al inicio', 'Llegaron', 'Juntas'],
+    questions: ['¿Cuántas había al inicio?', '¿Cuántas pusiste?', '¿Cuántas hay juntas?'],
+    hints: ['Cuenta las verdes del inicio.', 'Cuenta las que moviste.', 'Cuenta los dos grupos.'],
+    options: [{label: '2'}, {label: '4'}, {label: '3'}],
+    answers: [2, 0],
+    support: step => seedGroup($('board'), [first, extra][step], step === 0 ? '🌱' : '🌰',
+      step === 0 ? 'Semillas del inicio' : 'Semillas que llegaron'),
+    complete: showMathMap
+  }, [false, false, true]);
+}
+
 function showMathMap() {
-  const [first, extra] = rounds[round];
-  const total = first + extra;
-  screen('¡Así se suman!', 'Había ' + first + '. Pusiste ' + extra + ' más. Ahora hay ' + total + '.');
+  screen('¡Así se suman!', 'Había ' + first + '. Pusiste ' + extra + ' más. Ahora hay ' + total + '.', 'Tu mapa');
   mapTiles([first + ' al inicio', extra + ' más', total + ' juntas'], ['🌱'.repeat(first), '🌰'.repeat(extra), '🌱'.repeat(total)]);
   $('explain').hidden = false;
-  if (round === 0) next('Otro reto →', () => { round++; startMath(); });
-  else next('Ganar mi estrella', () => finish('Enseñaste a ' + nameText + ' a juntar semillas.'));
+  next('Otro reto →', () => showTransfer({
+    question: '¿Cuántas vas a tener?',
+    context: 'Cuatro semillas y dos más.',
+    pictures: ['🌱🌱🌱🌱', '🌰🌰'],
+    options: [{label:'7'}, {label:'6'}, {label:'5'}],
+    answer: 1,
+    hint: 'Cuenta las cuatro y luego las dos.',
+    result: 'Enseñaste a ' + nameText + ' a juntar semillas.'
+  }));
 }
 
 $('tell').onsubmit = async event => {
@@ -267,8 +294,6 @@ $('tell').onsubmit = async event => {
   const input = $('answer').value.trim();
   if (!input) { $('answer').focus(); return; }
   const version = activityVersion;
-  const submittedRound = round;
-  const [first, extra] = rounds[round];
   $('send').disabled = true;
   $('reply').textContent = 'Te escucho…';
   let parts = Semilla.extract(input);
@@ -281,7 +306,7 @@ $('tell').onsubmit = async event => {
     });
     if (response.ok) parts = (await response.json()).parts;
   } catch { /* The local interpreter can still offer a hint. */ }
-  if (version !== activityVersion || submittedRound !== round || view === 'done') return;
+  if (version !== activityVersion || $('explain').hidden || view === 'done') return;
   const expected = [first, extra, first + extra];
   const questions = ['¿Cuántas había al inicio?', '¿Cuántas pusiste después?', '¿Cuántas hay juntas?'];
   const previousGap = expected.findIndex((number, index) => explanation[index] !== number);
@@ -311,77 +336,136 @@ if (Recognition && window.isSecureContext) {
   $('speak').onclick = () => {
     const recognition = new Recognition();
     const version = activityVersion;
-    const spokenRound = round;
     recognition.lang = 'es';
     recognition.onresult = event => {
-      if (version === activityVersion && spokenRound === round) $('answer').value = event.results[0][0].transcript;
+      if (version === activityVersion && !$('explain').hidden) $('answer').value = event.results[0][0].transcript;
     };
     recognition.onerror = () => {
-      if (version === activityVersion && spokenRound === round) $('reply').textContent = 'También puedes escribir.';
+      if (version === activityVersion && !$('explain').hidden) $('reply').textContent = 'También puedes escribir.';
     };
     recognition.start();
   };
 }
 
+function choiceTile(option, choose) {
+  const tile = button($('choices'), '', choose);
+  tile.className = option.icon ? 'tile' : 'tile number';
+  if (option.icon) {
+    const icon = document.createElement('span');
+    drawPicture(icon, option.icon);
+    tile.append(icon);
+  }
+  tile.append(option.label);
+  return tile;
+}
+
+function showHint(hint) {
+  $('hint').hidden = false;
+  $('hint').onclick = () => { $('feedback').textContent = hint; };
+}
+
+function teachMissing(activity, learned) {
+  const step = learned.indexOf(false);
+  if (step === -1) { activity.complete(); return; }
+  const question = activity.questions[step];
+  const context = activity.beats?.join(' ');
+  screen(question, context ? context + ' ' + question : question, 'Tu mapa');
+  mapTiles(activity.slots.map((slot, i) => learned[i] ? activity.facts[i].label : slot),
+    activity.facts.map((fact, i) => learned[i] ? fact.icon : null), step);
+  activity.support?.(step);
+  showHint(activity.hints[step]);
+  activity.options.forEach((option, i) => {
+    choiceTile(option, () => {
+      if (i !== activity.answers[step]) {
+        $('feedback').textContent = activity.hints[step];
+        return;
+      }
+      learned[step] = true;
+      teachMissing(activity, learned);
+    });
+  });
+}
+
+function showTransfer(challenge) {
+  screen(challenge.question, challenge.context + ' ' + challenge.question, 'Reto nuevo');
+  const context = document.createElement('p');
+  context.className = 'challengeContext';
+  context.textContent = challenge.context;
+  $('board').append(context);
+  for (const picture of challenge.pictures) {
+    const illustration = document.createElement('span');
+    illustration.className = 'challengePicture';
+    drawPicture(illustration, picture);
+    $('board').append(illustration);
+  }
+  let independent = true;
+  challenge.options.forEach((option, i) => {
+    choiceTile(option, () => {
+      if (i === challenge.answer) { finish(challenge.result, independent); return; }
+      independent = false;
+      $('feedback').textContent = challenge.hint;
+    });
+  });
+}
+
 const sequences = {
   story: {
     intro: 'El nido de Lila',
-    labels: ['Ramita', 'Nido', 'Siesta'],
-    icons: ['🌿', 'nest', '🌙'],
-    beats: ['Lila junta una ramita.', 'Hace un nido.', 'Se duerme.'],
-    slots: ['Primero', 'Después', 'Al final'],
-    questions: ['¿Qué hizo primero?', '¿Qué hizo después?', '¿Cómo terminó?'],
-    hints: ['Busca la ramita.', 'Con la ramita hizo su casa.', 'Cerró los ojos.'],
-    finish: 'Enseñaste a ordenar un cuento.'
+    facts: [{label: 'Ramita', icon: '🌿'}, {label: 'Nido', icon: 'nest'}, {label: 'Siesta', icon: '🌙'}],
+    beats: ['Lila junta una ramita.', 'Con ella hace un nido.', 'Se duerme en él.'],
+    slots: ['Primero', '¿Para qué?', 'Al final'],
+    questions: ['¿Qué juntó Lila?', '¿Para qué usó la ramita?', '¿Qué hizo al final?'],
+    hints: ['Busca lo que juntó del suelo.', 'Hizo un lugar para dormir.', 'Cerró los ojos.'],
+    challenge: {
+      question: '¿Para qué se puso la bufanda?',
+      context: 'Nico tenía frío. Se puso una bufanda.',
+      pictures: ['🧣'],
+      options: [{label: 'Abrigarse', icon: '🧥'}, {label: 'Jugar', icon: '⚽'}, {label: 'Dormir', icon: '🌙'}],
+      answer: 0,
+      hint: 'Piensa en cómo se sentía Nico.',
+      result: 'Le enseñaste a tu personaje para qué hacemos algo.'
+    }
   },
   history: {
     intro: 'Los recuerdos de Ana',
-    labels: ['Cuna', 'Pasos', 'Escuela'],
-    icons: ['👶', '👣', '🎒'],
+    facts: [{label: 'Cuna', icon: '👶'}, {label: 'Pasos', icon: '👣'}, {label: 'Escuela', icon: '🎒'}],
     beats: ['De bebé, Ana dormía en una cuna.', 'Al crecer, aprendió a caminar.', 'Hoy va a la escuela.'],
     slots: ['De bebé', 'Al crecer', 'Hoy'],
     questions: ['¿Qué hacía de bebé?', '¿Qué aprendió al crecer?', '¿Qué hace hoy?'],
     hints: ['Busca dónde dormía.', 'Busca sus huellas.', 'Busca su mochila.'],
-    finish: 'Enseñaste a ordenar los recuerdos de Ana.'
+    challenge: {
+      question: '¿Cómo iba Leo antes?',
+      context: 'Leo iba a clase en bus. Hoy va en bici.',
+      pictures: ['🎒'],
+      options: [{label: 'Bici', icon: '🚲'}, {label: 'A pie', icon: '👟'}, {label: 'Bus', icon: '🚌'}],
+      answer: 2,
+      hint: 'Escucha o lee de nuevo cómo empieza la historia de Leo.',
+      result: 'Le enseñaste a tu personaje a distinguir antes y ahora.'
+    }
   }
 };
 
 function showSequenceIntro() {
   const activity = sequences[zone];
   screen(activity.intro, activity.beats.join(' '));
-  mapTiles(activity.beats, activity.icons);
-  next('¡Te enseño! →', showSequence);
-}
-
-function showSequence() {
-  const activity = sequences[zone];
-  const order = [2, 0, 1];
-  screen(activity.questions[placed], activity.questions[placed] + ' ' + order.map(i => activity.labels[i]).join('. '));
-  mapTiles(activity.slots.map((label, i) => i < placed ? activity.labels[i] : label),
-    activity.icons.slice(0, placed), placed);
-  $('hint').hidden = false;
-  $('hint').onclick = () => { $('feedback').textContent = activity.hints[placed]; };
-  // Keep a real choice on the last prompt, using only pictures the child has seen.
-  for (const index of order) {
-    const option = button($('choices'), '', () => {
-      if (index !== placed) {
-        $('feedback').textContent = activity.hints[placed];
-        return;
-      }
-      placed++;
-      if (placed < activity.labels.length) showSequence();
-      else showSequenceMap();
-    });
-    option.className = 'tile';
-    const icon = document.createElement('span');
-    drawPicture(icon, activity.icons[index]);
-    option.append(icon, activity.labels[index]);
-  }
-}
-
-function showSequenceMap() {
-  const activity = sequences[zone];
-  screen('¡Lo contaste en orden!', activity.beats.join(' '));
-  mapTiles(activity.labels, activity.icons);
-  next('Ganar mi estrella', () => finish(activity.finish));
+  mapTiles(activity.beats, activity.facts.map(fact => fact.icon));
+  next('¡Te enseño! →', () => {
+    screen('Muéstrame un dibujo');
+    const order = [2, 0, 1];
+    for (const index of order) {
+      choiceTile(activity.facts[index], () => {
+        const learned = activity.facts.map((_, i) => i === index);
+        teachMissing({
+          ...activity,
+          options: order.map(i => activity.facts[i]),
+          answers: activity.facts.map((_, i) => order.indexOf(i)),
+          complete: () => {
+            screen('¡Ya lo entendí!', activity.beats.join(' '), 'Tu mapa');
+            mapTiles(activity.facts.map(fact => fact.label), activity.facts.map(fact => fact.icon));
+            next('Otro reto →', () => showTransfer(activity.challenge));
+          }
+        }, learned);
+      });
+    }
+  });
 }
