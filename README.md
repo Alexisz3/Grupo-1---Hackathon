@@ -1,6 +1,6 @@
 # Escuela Semilla
 
-Prototipo del aula interactiva para los tres primeros grados. La cápsula de suma invita a enseñar a un personaje, revisar su mapa, aclarar pasos y aplicar la explicación a otro caso. El personaje puede elegirse o dibujarse.
+Prototipo del aula interactiva para primer grado. En Matemáticas, el niño mueve y cuenta semillas. En Lenguaje, ordena un cuento. En Historia, arma una línea del tiempo con los recuerdos de Ana. Cada cápsula termina con un mapa ilustrado. El personaje se puede cambiar o dibujar desde cualquier zona.
 
 ## Ejecutar
 
@@ -12,9 +12,9 @@ En una instancia EC2 con Node.js instalado, ejecutar `HOST=0.0.0.0 PORT=3000 nod
 
 ## Interpretación de las respuestas
 
-Por defecto se usa un intérprete local para las expresiones de las tarjetas y frases sencillas. Para usar un modelo, definir MODEL_URL (endpoint completo compatible con chat completions), MODEL_NAME y, cuando corresponda, MODEL_KEY en el proceso del servidor. Solo la explicación escrita o transcrita se envía a ese endpoint. El dibujo y el nombre permanecen en el navegador. El dictado puede utilizar el servicio de voz del navegador. El servidor no persiste las sesiones.
+La opción «Contárselo con mis palabras» de Matemáticas usa un intérprete local para frases sencillas. Para usar un modelo, definir MODEL_URL (endpoint completo compatible con chat completions), MODEL_NAME y, cuando corresponda, MODEL_KEY en el proceso del servidor. Solo la explicación escrita o transcrita se envía a ese endpoint. El dibujo y el nombre permanecen en el navegador. El dictado puede utilizar el servicio de voz del navegador. El servidor no persiste las sesiones.
 
-La cápsula representa las cantidades inicial, añadida y total. El alumno puede borrar la interpretación y explicarse otra vez. El reto final cambia las cantidades.
+El mapa conserva las cantidades que dijo el niño y señala el siguiente paso que el personaje necesita entender. El reto final cambia las cantidades.
 
 ## Dibujar y generar un personaje
 
