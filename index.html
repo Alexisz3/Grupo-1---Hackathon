@@ -14,7 +14,12 @@
 <button class="primary" id="start">Empezar la cápsula →</button></section>
 <section id="lesson" hidden><small id="stage"></small><div class="buddy"><span id="face"></span><div><strong id="buddyName"></strong><p id="prompt" aria-live="polite"></p></div></div><button id="listen">Escuchar en voz alta</button>
 <h2>El huerto</h2><div id="garden"></div>
+<h2 id="mapTitle" tabindex="-1">Mi mapa de semillas</h2>
+<div id="map" role="group" aria-labelledby="mapTitle"></div>
+<p id="feedback" role="status"></p>
+<button id="hint" hidden>Contemos juntos</button><button id="readMap" hidden>Escuchar el mapa</button>
+<div id="counting" hidden><p id="countHelp"></p><div id="seeds"></div><p id="countResult" role="status"></p></div>
 <h2>Mi explicación</h2><label for="answer">Escribe o arma tu respuesta con las tarjetas.</label><textarea id="answer" rows="2"></textarea><div id="cards"></div>
 <button id="speak" hidden>Dictar mi respuesta</button><button class="primary" id="send">Enseñar a mi personaje</button>
-<h2>Lo que entendió mi personaje</h2><div id="map"></div><p id="feedback" role="status"></p><button id="fix">Corregir el mapa</button><button id="next" class="primary" hidden></button></section>
+<button id="next" class="primary" hidden></button></section>
 <section id="done" hidden><small>CÁPSULA COMPLETADA</small><h2>¡Gracias, profe!</h2><p id="result"></p><button id="again" class="primary">Volver al inicio</button></section></main><script src="logic.js"></script><script src="app.js"></script><script src="character.js"></script></html>

@@ -33,7 +33,7 @@ function begin(){
   $('stage').textContent=stage?'RETO NUEVO · 2 DE 2':'CÁPSULA · 1 DE 2';
   $('prompt').textContent='En mi huerto había '+a+' semillas y llegaron '+b+' más. ¿Me enseñas cómo encontrar el total?';
   $('garden').textContent='Al principio: '+'🌱'.repeat(a)+' ('+a+')   ·   Llegaron: '+'🌱'.repeat(b)+' ('+b+')';
-  $('answer').value='';$('feedback').textContent='';$('cards').replaceChildren();
+  $('answer').value='';$('feedback').textContent='Cuéntame qué pasó en el huerto. Iré dibujando lo que me enseñes.';$('cards').replaceChildren();
   for(const phrase of ['Tenía '+a,'Llegaron '+b,...[a+b-1,a+b,a+b+1].map(n=>'En total hay '+n)]){
     button($('cards'),phrase,()=>{$('answer').value+=($('answer').value?'. ':'')+phrase;});
   }
@@ -47,30 +47,54 @@ function guide(i) {
   render();
   $('answer').focus();
 }
+function mapSentence(value,step){
+  if(value===null)return ['¿Cuántas había?','¿Cuántas llegaron?','¿Cuántas hay ahora?'][step];
+  const seeds=value===1?'semilla':'semillas';
+  return ['Había '+value+' '+seeds,(value===1?'Llegó ':'Llegaron ')+value+' '+seeds,'Ahora hay '+value+' '+seeds][step];
+}
 function render(){
   $('map').replaceChildren();
+  $('counting').hidden=true;
+  $('hint').hidden=selectedStep===null;
+  $('readMap').hidden=!('speechSynthesis' in window);
   mapped.forEach((v,i)=>{
-    const status=v===null?'Por explicar':v===lessons[stage][i]?'Entendido':'Revisemos';
-    const node=button($('map'),labels[i]+' · '+(v===null?'':v+' · ')+status,()=>guide(i));
+    const status=v===null?'Falta contar':v===lessons[stage][i]?'✓ Entendido':'↻ Cuenta otra vez';
+    const node=button($('map'),'',()=>guide(i));
+    const title=document.createElement('strong'), picture=document.createElement('span'), caption=document.createElement('span'), badge=document.createElement('small');
+    title.textContent=['Primero','Después','Juntos'][i];
+    picture.className='seedPicture';picture.setAttribute('aria-hidden','true');
+    picture.textContent=v===null?'?':v>0&&v<=10?'🌱'.repeat(v):String(v);
+    caption.textContent=mapSentence(v,i);badge.textContent=status;
+    node.append(title,picture,caption,badge);
     node.setAttribute('aria-pressed',String(selectedStep===i));
   });
-  if(selectedStep!==null){
-    const step=selectedStep;
-    button($('map'),'Dame una pista',()=>{
-      const hints=['Cuenta solo las plantas que ya estaban en el huerto.','Señala solo las plantas que llegaron después.','Cuenta los dos grupos juntos, una planta a la vez.'];
-      $('feedback').textContent=hints[step]+' '+questions[step];
-    });
-  }
   const complete=mapped.every((v,i)=>v===lessons[stage][i]);
   $('next').hidden=!complete;$('next').textContent=stage?'Terminar cápsula':'Probar otro caso →';
 }
-$('fix').onclick=()=>{
-  $('feedback').textContent='Elige en el mapa la parte que quieres explicar otra vez.';
-  $('map').querySelector('button').focus();
+$('readMap').onclick=()=>{
+  speechSynthesis.cancel();
+  const message=new SpeechSynthesisUtterance([...$('map').children].map(node=>node.innerText).join('. ')+'. '+$('feedback').textContent);
+  message.lang='es';speechSynthesis.speak(message);
+};
+$('hint').onclick=()=>{
+  if(selectedStep===null)return;
+  const amount=lessons[stage][selectedStep];
+  let counted=0;
+  $('counting').hidden=false;$('seeds').replaceChildren();
+  $('countHelp').textContent=['Toca cada semilla que había al principio.','Toca cada semilla que llegó después.','Toca todas las semillas de los dos grupos.'][selectedStep];
+  $('countResult').textContent='';
+  for(let i=0;i<amount;i++){
+    const seed=button($('seeds'),'🌱',()=>{
+      if(seed.getAttribute('aria-pressed')==='true')return;
+      seed.setAttribute('aria-pressed','true');seed.textContent=String(++counted);
+      $('countResult').textContent=counted===amount?'Contaste '+counted+'. ¿Cómo se lo explicarías a '+nameText+'?':'Llevas '+counted+'.';
+    });
+    seed.setAttribute('aria-label','Semilla '+(i+1));seed.setAttribute('aria-pressed','false');
+  }
 };
 $('send').onclick=async()=>{
   const input=$('answer').value.trim();if(!input||pending){$('answer').focus();return;}
-  pending=true;$('send').disabled=$('fix').disabled=true;$('next').hidden=true;
+  pending=true;$('send').disabled=true;$('next').hidden=true;
   try{
     let parts=Semilla.extract(input);
     if(location.protocol.startsWith('http')){
@@ -79,15 +103,15 @@ $('send').onclick=async()=>{
       }catch{/* Continue with the local interpreter. */}
     }
     const gap=mapped.findIndex((v,i)=>v!==lessons[stage][i]);
-    if(!Object.keys(parts).length && gap>=0 && /^(?:\d+|cero|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez)$/i.test(input)) {
+    if(!Object.keys(parts).length && (gap>=0||selectedStep!==null) && /^(?:\d+|cero|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez)$/i.test(input)) {
       const target=selectedStep??(mapped.every(v=>v===null)?2:gap);parts[target]=Semilla.extract("son "+input)[2];
     }
     Object.entries(parts).forEach(([i,v])=>{if(['0','1','2'].includes(i)&&Number.isInteger(v))mapped[i]=v;});
     const missing=mapped.findIndex((v,i)=>v!==lessons[stage][i]);
     selectedStep=missing<0?null:missing;
     $('feedback').textContent=missing<0?'¡Ya lo entendí! Puedo seguir los tres pasos.':(mapped[missing]===null?'Me falta una pista. ':'Revisemos ese paso. ')+questions[missing];
-    $('answer').value='';render();
-  }finally{pending=false;$('send').disabled=$('fix').disabled=false;}
+    $('answer').value='';render();$('mapTitle').focus();
+  }finally{pending=false;$('send').disabled=false;}
 };
 $('next').onclick=()=>{
   if(stage===0){stage=1;begin();return;}
