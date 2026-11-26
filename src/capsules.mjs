@@ -18,8 +18,8 @@ function garden(title, start, added) {
 
 export const capsules = {
   math: {
-    label:'Matemáticas', title:'El huerto de Pipo', detail:'Junta y cuenta semillas',
-    image:'contar', color:'green',
+    label:'Matemáticas', title:'¡Matemáticas Divertidas!', subtitle:'(Contar y Sumar)', detail:'Junta y cuenta semillas',
+    image:'zona-mates', color:'green',
     cases:[
       garden('Llegan semillas',3,2), garden('Otro huerto',4,3),
       garden('La primera maceta',1,2), garden('El huerto de Rosa',2,2),
@@ -29,8 +29,8 @@ export const capsules = {
     ]
   },
   story: {
-    label:'Lenguaje', title:'Cuentos con sentido', detail:'Explica por qué pasa algo',
-    image:'relato', color:'pink', cases:[
+    label:'Lenguaje', title:'¡El Rincón del Cuento!', subtitle:'(Letras y Palabras)', detail:'Crea cuentos y explica por qué pasa algo',
+    image:'zona-cuento', color:'pink', cases:[
       {
         title:'El nido de Lila',
         setup:'Lila quería un lugar para dormir. Juntó ramitas, hizo un nido y se durmió en él.',
@@ -67,8 +67,8 @@ export const capsules = {
     ]
   },
   history: {
-    label:'Historia', title:'Antes y ahora', detail:'Arma una línea del tiempo',
-    image:'recuerdos', color:'gold', cases:[
+    label:'Historia', title:'¡Exploradores del Pasado!', subtitle:'(Viaje en el Tiempo)', detail:'Arma una línea del tiempo',
+    image:'zona-historia', color:'gold', cases:[
       {
         title:'El álbum de Ana',
         setup:'De bebé, Ana dormía en una cuna. Después aprendió a caminar. Hoy va a la escuela.',
