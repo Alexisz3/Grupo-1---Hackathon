@@ -1,27 +1,42 @@
 # Escuela Semilla
 
-Prototipo del aula interactiva para primer grado. En Matemáticas, el niño mueve y cuenta semillas. En Lenguaje, ordena un cuento. En Historia, arma una línea del tiempo con los recuerdos de Ana. Cada cápsula termina con un mapa ilustrado. El personaje se puede cambiar o dibujar desde cualquier zona.
-
-El personaje conserva las partes que el niño ya mostró y pregunta por el siguiente paso. Cada zona termina con un caso nuevo. La pantalla final indica si el niño acertó en el primer intento o si volvió a intentar. El resultado de esa actividad solo se muestra durante la sesión.
+Aula interactiva con agentes del **Grupo 1** para primer grado. Los niños enseñan a un personaje con fichas, texto o dictado. El personaje devuelve un mapa editable, pregunta por la primera idea que necesita aclarar y propone otra situación para practicar. El catálogo tiene diez ejercicios en cada área de Matemáticas, Lenguaje e Historia. Cada ejercicio utiliza el siguiente caso del área como reto.
 
 ## Ejecutar
 
-Con Node.js 22 o posterior, ejecutar `node server.js` y abrir http://127.0.0.1:3000. También se puede abrir index.html directamente para la versión local.
+Requiere Node.js 22.12 o posterior y pnpm.
 
-## AWS
+```bash
+pnpm install --frozen-lockfile
+pnpm test
+pnpm build
+pnpm start
+```
 
-En una instancia EC2 con Node.js instalado, ejecutar `HOST=0.0.0.0 PORT=3000 node server.js` desde esta carpeta. La URL externa y las reglas de entrada dependen del entorno del Learner Lab. El dictado depende del soporte del navegador y de un contexto seguro (localhost o HTTPS). El texto y las tarjetas funcionan independientemente del micrófono.
+Abre http://127.0.0.1:3000. Para editar la interfaz, `pnpm dev` arranca Vite. Ejecuta también `pnpm start` en el puerto 3000 si quieres que Vite consulte la API. El tablero y el intérprete local siguen disponibles cuando esa API no responde.
 
-## Interpretación de las respuestas
+## Presentar en AWS
 
-La opción «Contárselo con mis palabras» de Matemáticas usa un intérprete local para frases sencillas. Para usar un modelo, definir MODEL_URL (endpoint completo compatible con chat completions), MODEL_NAME y, cuando corresponda, MODEL_KEY en el proceso del servidor. Solo la explicación escrita o transcrita se envía a ese endpoint. El dibujo y el nombre permanecen en el navegador. El dictado puede utilizar el servicio de voz del navegador. El servidor no persiste las sesiones.
+El servidor Node sirve la compilación y la API desde el mismo origen. Desde la instancia EC2, después de instalar y compilar, ejecuta:
 
-El mapa conserva las cantidades que dijo el niño y señala el siguiente paso que el personaje necesita entender. El reto final cambia las cantidades.
+```bash
+HOST=0.0.0.0 PORT=3000 pnpm start
+```
 
-## Dibujar y generar un personaje
+Usa la URL y las reglas de entrada que autorice el Learner Lab. El dictado requiere un navegador compatible y localhost o HTTPS. Escuchar usa las voces que ofrece el dispositivo. Las fichas, el teclado y el texto están disponibles sin permisos de micrófono.
 
-Abre la aplicación mediante el servidor HTTP, despliega «Dibujar mi personaje», elige gato, conejo o pájaro y dibuja un contorno parcial. Al pulsar «Crear personaje con IA», Sketch-RNN recibe los trazos del niño y predice nuevos trazos para completar la figura. Los trazos originales aparecen en verde y las adiciones en terracota. Se puede generar otra variante, cambiar de animal o seguir dibujando antes de empezar la cápsula.
+## Agregar cápsulas
 
-El generador se ejecuta en un Web Worker. El navegador descarga el modelo del propio servidor y procesa el dibujo localmente. Cada modelo está especializado en un animal y los resultados varían según el boceto. Para usar el generador se requiere HTTP/HTTPS.
+- `src/capsules.mjs` y `src/extra-cases.mjs` contienen los casos y sus mapas. Cada caso declara la escena, las tres casillas, las fichas, la respuesta esperada y una pista por casilla. El catálogo y los totales se generan a partir de esos datos.
+- `src/Workshop.jsx` implementa enseñar, revisar, editar y probar un caso nuevo. La corrección contrasta las fichas con el contenido preparado de cada caso.
+- `src/interpreter.mjs` interpreta frases cortas localmente. `server.js` puede consultar un endpoint compatible con *chat completions* mediante `MODEL_URL`, `MODEL_NAME` y, si el proveedor la requiere, `MODEL_KEY`. El servidor acepta únicamente IDs de fichas incluidas en el caso. El modelo interpreta la explicación y la revisión del tablero aplica las reglas de la cápsula.
+- `src/Studio.jsx` conserva los trazos del niño y permite completarlos con Sketch-RNN. Los modelos de gato, conejo y pájaro se sirven desde `public/art/` y se ejecutan en el dispositivo. El servidor no guarda dibujos, nombres, explicaciones ni resultados. Si se habilita un proveedor para el intérprete, le llega el texto escrito o dictado, junto con las casillas y fichas del caso.
 
-Implementación de referencia y bibliotecas de [Magenta Demos](https://github.com/magenta/magenta-demos/tree/main/sketch-rnn-js). Pesos preentrenados de Sketch-RNN disponibles en [Quick Draw Models](https://github.com/googlecreativelab/quickdraw-dataset#sketch-rnn-quickdraw-dataset). Los recursos distribuidos están en art/.
+La pantalla final indica si se resolvió el nuevo mapa sin corrección ni pistas. El resultado corresponde a esa sesión. Para evaluar aprendizaje, conviene observar también cómo explica el niño su respuesta con sus propias palabras o dibujos.
+
+## Referencias de diseño
+
+- [Betty’s Brain, Universidad Vanderbilt](https://www.vanderbilt.edu/oele/bettys-brain/) inspira el mapa editable del personaje que aprende. Escuela Semilla usa tres casillas y preguntas de una en una para primer grado.
+- [GCompris · Chronos](https://gcompris.net/screenshots-en.html#chronos) inspira ordenar imágenes en una secuencia. [Repositorio de GCompris](https://github.com/gcompris/GCompris-qt).
+- [Khan Academy Kids](https://www.khanacademy.org/kids/ela) inspira la narración repetible y las preguntas breves de un personaje.
+- [Sketch-RNN de Magenta](https://github.com/magenta/magenta-demos/tree/main/sketch-rnn-js) aporta la implementación y los modelos de dibujo. Los créditos y recursos del modelo se encuentran en `public/art/`.
