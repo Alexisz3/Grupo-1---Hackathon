@@ -25,7 +25,9 @@ $('start').onclick=()=>{
   $('face').textContent=avatar;
   if(drawing){const img=new Image();img.src=characterImage||canvas.toDataURL();img.alt='Tu personaje dibujado';$('face').replaceChildren(img);}
   if(worker){worker.terminate();worker=null;}
-  $('setup').hidden=true;$('lesson').hidden=false;stage=0;begin();
+  $('setup').hidden=true;
+  if(zone!=='math'){beginWordLesson();return;}
+  $('lesson').hidden=false;stage=0;begin();
 };
 function begin(){
   selectedStep=null;
@@ -37,7 +39,7 @@ function begin(){
   for(const phrase of ['Tenía '+a,'Llegaron '+b,...[a+b-1,a+b,a+b+1].map(n=>'En total hay '+n)]){
     button($('cards'),phrase,()=>{$('answer').value+=($('answer').value?'. ':'')+phrase;});
   }
-  render();$('answer').focus();
+  render();$('mapTitle').focus();
 }
 let selectedStep = null;
 function guide(i) {
@@ -116,6 +118,7 @@ $('send').onclick=async()=>{
 $('next').onclick=()=>{
   if(stage===0){stage=1;begin();return;}
   $('lesson').hidden=true;
+  earnStar();
   $('done').hidden=false;
   $('result').textContent='Le enseñaste a '+nameText+' a juntar dos grupos: 3 + 2 = 5 y 4 + 2 = 6.';
   const heading=$('done').querySelector('h2');
@@ -126,4 +129,93 @@ $('listen').hidden=!('speechSynthesis' in window);
 $('listen').onclick=()=>{speechSynthesis.cancel();const msg=new SpeechSynthesisUtterance($('prompt').textContent+' '+$('feedback').textContent);msg.lang='es';speechSynthesis.speak(msg);};
 const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
 if(Recognition&&window.isSecureContext){$('speak').hidden=false;$('speak').onclick=()=>{const r=new Recognition();r.lang='es';r.onresult=e=>{$('answer').value=e.results[0][0].transcript;};r.onerror=()=>{$('feedback').textContent='Puedes escribir o usar las tarjetas.';};r.start();};}
-$('again').onclick=()=>location.reload();
+$('again').onclick=showZones;
+let zone='math';
+const earned=new Set();
+const zoneButtons=[...document.querySelectorAll('[data-zone]')];
+function showZones(){
+  if(pending)return;
+  window.speechSynthesis?.cancel();
+  for(const id of ['setup','lesson','wordsLesson','done','back'])$(id).hidden=true;
+  $('zones').hidden=false;
+  zoneButtons.find(b=>b.dataset.zone===zone).focus();
+}
+$('back').onclick=showZones;
+for(const b of zoneButtons)b.onclick=()=>{
+  zone=b.dataset.zone;
+  $('chosenZone').textContent=b.querySelector('strong').textContent;
+  $('zones').hidden=true;$('setup').hidden=false;$('back').hidden=false;
+  $('start').focus();
+};
+function earnStar(){
+  earned.add(zone);
+  $('reward').textContent='⭐ '+earned.size+' de 3 estrellas';
+}
+const wordLessons={
+ story:{
+   title:'El nido de Lila',map:'Mi cuento en tres dibujos',
+   story:'Lila encontró una ramita. Con ella hizo un nido. Al final se durmió en él.',
+   steps:['Primero','Después','Al final'],
+   choices:['🐦 Encuentra una ramita','🪺 Hace su nido','🌙 Se duerme'],
+   prompts:['¿Qué hizo Lila primero?','¿Qué hizo con la ramita?','¿Cómo termina el cuento?'],
+   hints:['Al inicio Lila busca algo para construir.','Ya tiene la ramita. ¿Qué construye?','Ya tiene dónde descansar.']
+ },
+ history:{
+   title:'El álbum de Ana',map:'Mi línea del tiempo',
+   story:'Ana mira tres recuerdos. Cuando era bebé dormía en una cuna. Después aprendió a caminar. Hoy va a primer grado.',
+   steps:['De bebé','Al crecer','Hoy'],
+   choices:['👶 Duerme en su cuna','👣 Aprende a caminar','🎒 Va a la escuela'],
+   prompts:['¿Cuál es el primer recuerdo de Ana?','¿Qué aprendió al crecer?','¿Qué hace Ana hoy?'],
+   hints:['Busca el recuerdo de cuando era más pequeña.','Mira las huellas.','Busca lo que lleva a clase.']
+ }
+};
+let wordStep,wordAnswers,wordMessage;
+function speakWords(text){
+  if(!window.speechSynthesis)return;
+  speechSynthesis.cancel();
+  const voice=new SpeechSynthesisUtterance(text);voice.lang='es';voice.rate=.85;speechSynthesis.speak(voice);
+}
+function beginWordLesson(){
+  const data=wordLessons[zone];
+  wordStep=0;wordAnswers=[false,false,false];wordMessage='';
+  $('wordsLesson').hidden=false;$('subject').textContent=$('chosenZone').textContent;
+  $('wordFace').replaceChildren(...[...$('face').childNodes].map(n=>n.cloneNode(true)));
+  $('wordTitle').textContent=data.title;$('wordStory').textContent=data.story;
+  $('sequenceTitle').textContent=data.map;
+  $('readStory').hidden=!window.speechSynthesis;
+  $('readStory').onclick=()=>{
+    const choices=[...$('wordChoices').children].map(b=>b.textContent).join('. ');
+    speakWords(data.story+'. '+$('wordPrompt').textContent+'. '+choices);
+  };
+  drawSequence();
+  $('wordTitle').tabIndex=-1;$('wordTitle').focus();
+}
+function drawSequence(){
+  const data=wordLessons[zone];
+  $('wordChoices').replaceChildren();
+  let timeline=$('timeline');
+  if(!timeline){timeline=document.createElement('ol');timeline.id='timeline';$('sequenceTitle').after(timeline);}
+  timeline.replaceChildren();
+  wordAnswers.forEach((answered,i)=>{
+    const item=document.createElement('li');
+    item.textContent=data.steps[i]+' · '+(answered?data.choices[i]:'?');
+    if(!answered&&i===wordStep)item.setAttribute('aria-current','step');
+    timeline.append(item);
+  });
+  $('wordDone').hidden=wordStep<3;
+  $('wordPrompt').textContent=wordStep===3?'¡Gracias! Ya puedo contarlo en orden.':nameText+' pregunta: '+(wordMessage||data.prompts[wordStep]);
+  if(wordStep===3){$('wordDone').focus();return;}
+  for(const i of [2,0,1]){
+    if(wordAnswers[i])continue;
+    button($('wordChoices'),data.choices[i],()=>{
+      if(i!==wordStep){wordMessage=data.hints[wordStep];$('wordPrompt').textContent=nameText+' dice: '+wordMessage;return;}
+      wordAnswers[i]=true;wordStep++;wordMessage='';drawSequence();
+      $('wordChoices').firstElementChild?.focus();
+    });
+  }
+}
+$('wordDone').onclick=()=>{
+  earnStar();$('wordsLesson').hidden=true;$('done').hidden=false;
+  $('result').textContent='Le enseñaste a '+nameText+' a ordenar '+(zone==='story'?'el cuento de Lila.':'los recuerdos de Ana.');
+  $('again').focus();
+};

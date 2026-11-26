@@ -2,8 +2,14 @@
 <html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Escuela Semilla · Aula interactiva</title>
 <link rel="stylesheet" href="style.css">
 <header><span aria-hidden="true">✿</span> Escuela Semilla</header>
-<main><section class="intro"><small>MATEMÁTICAS · PRIMEROS GRADOS</small><h1>Hoy tú enseñas.</h1><p>Ayuda a tu personaje a descubrir cómo crece una colección de semillas.</p></section>
-<section id="setup"><h2>Crea a tu compañero</h2><label>Nombre del personaje <input id="name" value="Pipo" maxlength="24"></label><p>Elige un personaje o dibuja uno con el dedo.</p><div id="avatars" role="group" aria-label="Personajes"></div>
+<main><section id="zones"><div class="reward" id="reward">⭐ 0 de 3 estrellas</div><h1>Elige tu zona de aprendizaje</h1>
+<div class="zoneGrid">
+<button data-zone="math"><span class="scene math"></span><strong>Matemáticas divertidas</strong><span>Contar y sumar</span></button>
+<button data-zone="story"><span class="scene story"></span><strong>El rincón del cuento</strong><span>Letras y palabras</span></button>
+<button data-zone="history"><span class="scene history"></span><strong>Exploradores del pasado</strong><span>Antes y ahora</span></button>
+</div></section>
+<button id="back" hidden>← Volver a las zonas</button>
+<section id="setup" hidden><small id="chosenZone"></small><h2>Crea a tu compañero</h2><label>Nombre del personaje <input id="name" value="Pipo" maxlength="24"></label><p>Elige un personaje o dibuja uno con el dedo.</p><div id="avatars" role="group" aria-label="Personajes"></div>
 <details><summary>Dibujar mi personaje</summary>
 <p>Elige un animal y dibuja el comienzo de su cara o su cuerpo. La IA completará tus líneas.</p>
 <label>Mi compañero es un <select id="species"><option value="cat">gato</option><option value="rabbit">conejo</option><option value="bird">pájaro</option></select></label>
@@ -19,7 +25,10 @@
 <p id="feedback" role="status"></p>
 <button id="hint" hidden>Contemos juntos</button><button id="readMap" hidden>Escuchar el mapa</button>
 <div id="counting" hidden><p id="countHelp"></p><div id="seeds"></div><p id="countResult" role="status"></p></div>
-<h2>Mi explicación</h2><label for="answer">Escribe o arma tu respuesta con las tarjetas.</label><textarea id="answer" rows="2"></textarea><div id="cards"></div>
+<h2>¿Qué le enseñas?</h2><div id="cards"></div><label for="answer">Toca las tarjetas o escribe aquí.</label><textarea id="answer" rows="2"></textarea>
 <button id="speak" hidden>Dictar mi respuesta</button><button class="primary" id="send">Enseñar a mi personaje</button>
 <button id="next" class="primary" hidden></button></section>
-<section id="done" hidden><small>CÁPSULA COMPLETADA</small><h2>¡Gracias, profe!</h2><p id="result"></p><button id="again" class="primary">Volver al inicio</button></section></main><script src="logic.js"></script><script src="app.js"></script><script src="character.js"></script></html>
+<section id="wordsLesson" hidden><small id="subject"></small><h2 id="wordTitle"></h2><div class="buddy"><span id="wordFace"></span><p id="wordStory"></p></div>
+<button id="readStory">Escuchar</button><h2 id="sequenceTitle"></h2><div id="wordMap"></div>
+<p id="wordPrompt" role="status"></p><div id="wordChoices"></div><button id="wordDone" hidden class="primary">Terminar cápsula</button></section>
+<section id="done" hidden><small>CÁPSULA COMPLETADA</small><h2>¡Gracias, profe!</h2><p id="result"></p><button id="again" class="primary">Elegir otra zona</button></section></main><script src="logic.js"></script><script src="app.js"></script><script src="character.js"></script></html>

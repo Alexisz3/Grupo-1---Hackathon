@@ -9,3 +9,20 @@
 #seeds button[aria-pressed=true]{border-style:dashed}
 #feedback{font-weight:bold}
 @media(max-width:560px){#map{grid-template-columns:1fr;gap:16px}#map button{grid-template-columns:auto 1fr;align-items:center;padding:10px 14px;gap:4px 12px}#map button:not(:last-child)::after{content:"↓";left:48%;top:100%;height:16px;line-height:16px}}
+body{margin:0;background:#fff4d9;color:#243d43}
+header{background:#fffaf0}
+main{max-width:1120px}
+#zones{background:#fff1c8;padding:clamp(18px,4vw,46px);border:1px solid #ead4a2;text-align:center}
+#zones h1{color:#175777;font-family:"Trebuchet MS",system-ui,sans-serif;font-size:clamp(2rem,5vw,3.8rem);margin:18px 0 32px}
+.reward{color:#795218;font-weight:bold}
+#zones .zoneGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.zoneGrid button{display:grid;gap:7px;background:#fff;border:4px solid white;box-shadow:0 5px 0 #d2b47c;border-radius:24px;padding:0 0 16px;overflow:hidden;margin:0;color:#183f50}
+.zoneGrid button:hover{border-color:#e7ac46;transform:translateY(-2px)}
+.zoneGrid strong{font-size:clamp(1rem,2vw,1.45rem)}
+.scene{display:block;aspect-ratio:1.12;background-image:url('/art/zonas.png');background-size:360% auto;background-repeat:no-repeat}
+.scene.math{background-position:6% 52%}.scene.story{background-position:51.2% 52%}.scene.history{background-position:95% 52%}
+#timeline{list-style:none;padding:0;display:flex;gap:10px;flex-wrap:wrap}
+#timeline li{padding:16px;border-radius:14px;border:2px solid #c1d9bc;background:#eff7e9;flex:1}
+#timeline [aria-current]{border-color:#997020;background:#fff5d5}
+#wordFace{font-size:2.8rem}#wordFace img{width:72px}
+@media(max-width:640px){#zones .zoneGrid{grid-template-columns:1fr}.zoneGrid button{grid-template-columns:92px 1fr;text-align:left;align-items:center;padding:0 8px 0 0}.zoneGrid .scene{grid-row:span 2;width:92px}.zoneGrid strong{align-self:end}.zoneGrid strong+span{align-self:start}#timeline{flex-direction:column}}
