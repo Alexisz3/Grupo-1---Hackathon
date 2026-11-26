@@ -2,14 +2,18 @@
   "name": "escuela-semilla",
   "version": "1.0.0",
   "private": true,
-  "engines": {"node": ">=22.12"},
+  "engines": {
+    "node": ">=22.13"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "test": "node --test",
-    "start": "node server.js"
+    "start": "node --env-file-if-exists=.env server.js"
   },
   "dependencies": {
+    "@fontsource-variable/fredoka": "^5.3.0",
+    "@fontsource-variable/lora": "^5.3.0",
     "lucide-react": "^0.468.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
