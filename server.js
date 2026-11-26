@@ -3,7 +3,8 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const {extract} = require('./logic');
 const assets = {'/':'index.html','/index.html':'index.html','/style.css':'style.css','/logic.js':'logic.js','/app.js':'app.js'};
-const mime = {'.html':'text/html','.css':'text/css','.js':'text/javascript'};
+for(const file of ['character.js','art/generate.js','art/numjs.js','art/sketch_rnn.js','art/cat.json','art/rabbit.json','art/bird.json']) assets['/'+file]=file;
+const mime = {'.html':'text/html','.css':'text/css','.js':'text/javascript','.json':'application/json'};
 
 async function interpret(input) {
   if (process.env.MODEL_URL && process.env.MODEL_NAME) {

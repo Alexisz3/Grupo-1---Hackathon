@@ -13,7 +13,7 @@ for (const [icon,name] of [['🐥','Pollito'],['🐢','Tortuga'],['🐰','Conejo
     for (const item of $('avatars').children) item.setAttribute('aria-pressed',String(item === b));
   });
 }
-function clearDrawing(){pen.clearRect(0,0,canvas.width,canvas.height);drawing=false;}
+function clearDrawing(){pen.clearRect(0,0,canvas.width,canvas.height);drawing=false;if(typeof resetCharacter==='function')resetCharacter();}
 $('avatars').firstChild.click();
 function point(e){const r=canvas.getBoundingClientRect();return [(e.clientX-r.left)*canvas.width/r.width,(e.clientY-r.top)*canvas.height/r.height];}
 canvas.onpointerdown=e=>{canvas.setPointerCapture(e.pointerId);dragging=true;drawing=true;pen.strokeStyle='#285546';pen.lineWidth=5;pen.lineCap='round';pen.beginPath();const [x,y]=point(e);pen.moveTo(x-.1,y);pen.lineTo(x,y);pen.stroke();};
@@ -23,7 +23,8 @@ $('erase').onclick=clearDrawing;
 $('start').onclick=()=>{
   nameText=$('name').value.trim() || 'Pipo';$('buddyName').textContent=nameText;
   $('face').textContent=avatar;
-  if(drawing){const img=new Image();img.src=canvas.toDataURL();img.alt='Tu personaje dibujado';$('face').replaceChildren(img);}
+  if(drawing){const img=new Image();img.src=characterImage||canvas.toDataURL();img.alt='Tu personaje dibujado';$('face').replaceChildren(img);}
+  if(worker){worker.terminate();worker=null;}
   $('setup').hidden=true;$('lesson').hidden=false;stage=0;begin();
 };
 function begin(){
