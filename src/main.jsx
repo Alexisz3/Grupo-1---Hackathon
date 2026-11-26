@@ -1,55 +1,29 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {createRoot} from 'react-dom/client';
-import {ArrowRight, BookOpen, Check, ChevronLeft, Clock3, Pencil, Shapes, Sprout, Star} from 'lucide-react';
+import {ArrowRight, Check, ChevronLeft, Sparkles, Sprout, Star} from 'lucide-react';
+import '@fontsource-variable/fredoka';
+import '@fontsource-variable/lora';
 import {capsules} from './capsules.mjs';
-import Studio from './Studio.jsx';
-import Workshop, {Avatar} from './Workshop.jsx';
+import Workshop from './Workshop.jsx';
+import TimeTravelScreen from './screens/history/time-travel-screen.jsx';
+import HomeScreen from './screens/home/home-screen.jsx';
+import MathTutorScreen from './screens/math/math-tutor-screen.jsx';
+import StoryReaderScreen from './screens/story/story-reader-screen.jsx';
+import StoryScreen from './screens/story/story-screen.jsx';
+import {StoryShelf} from './screens/story/components/story-shelf.jsx';
+import StudioScreen from './screens/studio/studio-screen.jsx';
+import {useSchool} from './hooks/use-school.js';
 import './style.css';
 
-const icons = {math:Shapes, story:BookOpen, history:Clock3};
-const firstBuddy = {name:'Pipo',icon:'🐥',image:null};
-const exerciseCount = Object.values(capsules).reduce((total, capsule) => total + capsule.cases.length, 0);
+// La actividad con IA de cada zona, arriba de los ejercicios
+const agents = {
+  math:buddy => ['¡' + buddy.name + ' se equivoca!', 'Descubre su error y enséñale a sumar'],
+  story:() => ['Crear un cuento con IA', 'Haz un dibujo y la IA lo convierte en un cuento'],
+  history:() => ['Viaje en el tiempo', 'Conversa por voz con personas del pasado']
+};
 
-function Home({buddy, progress, onOpen, onStudio}) {
-  const earned = Object.keys(progress).length;
-  return <main className="home">
-    <section className="hero">
-      <div className="hero-copy">
-        <span className="hero-label"><Sprout size={17} /> Un aula para primer grado</span>
-        <h1>Hoy tú<br />enseñas<span>.</span></h1>
-        <p>Tu personaje aprende de ti.</p>
-        <a href="#capsules" className="primary">Elegir aventura <ArrowRight size={21} /></a>
-      </div>
-      <img src="/art/aula.webp" alt="" width="800" height="533" />
-      <button className="buddy-chip" type="button" onClick={onStudio}>
-        <Avatar buddy={buddy} /><span><small>Mi personaje</small><strong>{buddy.name}</strong></span><Pencil size={17} />
-      </button>
-    </section>
-    <section id="capsules" aria-labelledby="areas">
-      <div className="section-heading">
-        <h2 id="areas">Elige tu aventura</h2>
-        <span className="progress"><Star size={18} /> {earned} de {exerciseCount} estrellas</span>
-      </div>
-      <div className="capsule-grid">
-        {Object.entries(capsules).map(([id,capsule]) => {
-          const Icon = icons[id];
-          const count = capsule.cases.filter((_,index) => progress[id + ':' + index]).length;
-          return <button key={id} type="button" className="capsule" data-color={capsule.color} onClick={() => onOpen(id)} aria-label={capsule.label}>
-            <img src={'/art/'+capsule.image+'.webp'} width="620" height="410" alt="" />
-            <span className="capsule-body">
-              <span className="subject"><Icon size={16} /> {capsule.label}</span>
-              <strong>{capsule.title}</strong>
-              <span className="capsule-detail">{capsule.cases.length} ejercicios</span>
-              <span className="card-arrow">{count === capsule.cases.length ? <Check size={22} /> : <ArrowRight size={22} />}</span>
-            </span>
-          </button>;
-        })}
-      </div>
-    </section>
-  </main>;
-}
-
-function Catalog({capsule, zone, progress, onHome, onSelect}) {
+function Catalog({capsule, zone, buddy, progress, onHome, onSelect, onAgent, onRead}) {
+  const [agentTitle, agentDetail] = agents[zone](buddy);
   const heading = useRef(null);
   const count = capsule.cases.filter((_,index) => progress[zone + ':' + index]).length;
   useEffect(() => { heading.current?.focus(); }, [zone]);
@@ -63,6 +37,10 @@ function Catalog({capsule, zone, progress, onHome, onSelect}) {
         </div>
         <img src={'/art/' + capsule.image + '.webp'} alt="" />
       </div>
+      <button type="button" className="agent-entry" onClick={onAgent}>
+        <Sparkles size={30} /><span><strong>{agentTitle}</strong>{agentDetail}</span><ArrowRight size={24} />
+      </button>
+      {zone === 'story' && <StoryShelf onRead={onRead} />}
       <div className="section-heading">
         <h2>Elige un ejercicio</h2>
         <span className="progress"><Star size={17} /> {count} de {capsule.cases.length}</span>
@@ -101,14 +79,14 @@ function Result({buddy, independent, onCatalog, onReplay}) {
 }
 
 function App() {
-  const [buddy,setBuddy] = useState(firstBuddy);
-  const [progress,setProgress] = useState({});
+  const {buddy, progress, saveError, saveBuddy, addStar} = useSchool();
   const [screen,setScreen] = useState('home');
   const [zone,setZone] = useState(null);
   const [exercise,setExercise] = useState(0);
   const [studio,setStudio] = useState(false);
   const [attempt,setAttempt] = useState(0);
   const [independent,setIndependent] = useState(false);
+  const [reading,setReading] = useState(null);
 
   function goHome() {
     setScreen('home');
@@ -129,27 +107,35 @@ function App() {
     window.scrollTo(0,0);
   }
 
+  // Las estrellas de la IA no cuentan en «N de 10» del catálogo, solo en los premios de la portada
+  const earnAgentStar = () => addStar(zone + ':ia:' + Date.now());
+
   function finish(withoutHelp) {
-    setProgress(value => ({...value,[zone + ':' + exercise]:true}));
+    addStar(zone + ':' + exercise);
     setIndependent(withoutHelp);
     setScreen('result');
     window.scrollTo(0,0);
   }
 
   return <>
-    <header className="site-bar"><div>
+    <header className="site-bar" hidden={screen === 'home'}><div>
       <button type="button" className="wordmark" onClick={goHome}><span><Sprout size={22} /></span> Escuela Semilla</button>
     </div></header>
     <div hidden={studio}>
-      {screen === 'home' && <Home buddy={buddy} progress={progress} onOpen={openZone} onStudio={() => setStudio(true)} />}
-      {screen === 'catalog' && <Catalog capsule={capsules[zone]} zone={zone} progress={progress}
-        onHome={goHome} onSelect={openExercise} />}
+      {screen === 'home' && <HomeScreen buddy={buddy} stars={Object.keys(progress).length} onOpen={openZone} onStudio={() => setStudio(true)} />}
+      {screen === 'catalog' && <Catalog capsule={capsules[zone]} zone={zone} buddy={buddy} progress={progress}
+        onHome={goHome} onSelect={openExercise} onAgent={() => setScreen('agent')} onRead={id => {setReading(id);setScreen('reader');window.scrollTo(0,0);}} />}
+      {screen === 'reader' && <StoryReaderScreen id={reading} onBack={() => openZone('story')} />}
+      {screen === 'agent' && zone === 'math' && <MathTutorScreen buddy={buddy} onBack={() => openZone(zone)} onComplete={earnAgentStar} />}
+      {screen === 'agent' && zone === 'story' && <StoryScreen onBack={() => openZone(zone)} onComplete={earnAgentStar} />}
+      {screen === 'agent' && zone === 'history' && <TimeTravelScreen onBack={() => openZone(zone)} onComplete={earnAgentStar} />}
       {screen === 'workshop' && <Workshop key={zone + attempt} capsuleId={zone} capsule={capsules[zone]} initial={exercise}
-        buddy={buddy} onBack={() => openZone(zone)} onStudio={() => {window.speechSynthesis?.cancel();setStudio(true);}} onFinish={finish} />}
+        buddy={buddy} onBack={() => openZone(zone)} onStudio={() => setStudio(true)} onFinish={finish} />}
       {screen === 'result' && <Result buddy={buddy} independent={independent} onCatalog={() => openZone(zone)} onReplay={() => openExercise(exercise)} />}
     </div>
-    {studio && <Studio buddy={buddy}
-      onSave={next => {setBuddy(next);setStudio(false);}} onBack={() => setStudio(false)} />}
+    {studio && <StudioScreen buddy={buddy}
+      onSave={next => {saveBuddy(next);setStudio(false);}} onBack={() => setStudio(false)} />}
+    {saveError && <p className="save-error" role="alert">{saveError}</p>}
   </>;
 }
 
