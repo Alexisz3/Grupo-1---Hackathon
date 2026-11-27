@@ -16,7 +16,7 @@
 
 Voz e ilustraciones, sin límites ni costo por uso (Docker, CPU):
 
-- Voz: Kokoro (`voice`), voces en español por personaje, ~1 s por audio. Respaldo: Gemini TTS (3 por minuto) y la voz del navegador.
+- Voz: Kokoro (`voice`), voces en español por personaje, ~1 s por audio. Respaldo: la voz del navegador.
 - Ilustraciones: SD-Turbo (`painter`), 1 paso, ~8 s por página en CPU. El modelo del cuento escribe el prompt en inglés describiendo siempre igual al protagonista del dibujo; la semilla es fija por cuento. Sin ilustrador, se ve el dibujo del niño.
 
 ## Matemáticas · ¡Pipo se equivoca!
@@ -43,32 +43,39 @@ Voz e ilustraciones, sin límites ni costo por uso (Docker, CPU):
 | `POST /api/math/teach` | `{hero, problem, explanation}` | `{reply}` |
 | `POST /api/history` | `{character, question, turns}` | `{reply, before, now}` |
 
-- Modelo de texto: cualquier endpoint compatible con *chat completions* (`MODEL_URL`, `MODEL_NAME`, `MODEL_KEY`, `MODEL_EFFORT`): Gemini ahora, Ollama en Docker después, Bedrock en AWS.
+- Modelo de texto: Gemma local con Ollama (`OLLAMA_MODEL`, por defecto `gemma3:4b`), por su API compatible con *chat completions*. Toda la IA corre en el servidor: ningún dato de los niños sale de él.
 - El servidor valida la forma de cada página (largo de textos, 2 opciones, 3 emojis) antes de enviarla. El texto del niño va solo como datos.
 
 ## Docker
 
-- `compose.yaml`: servicio `app` (puerto 3000, `.env`). Perfil `ollama` (IA local) y perfil `tunnel` (enlace https de Cloudflare, necesario para el micrófono).
+- `compose.yaml`: `app` y `ollama` siempre; perfiles `voice`, `images` y `tunnel` (enlace https de Cloudflare, necesario para el micrófono).
 
-## Guardado local (SQLite en un volumen de Docker)
+## Guardado por niño (SQLite en un volumen de Docker)
 
-Todo queda en `data/escuela.db` (en Docker, el volumen `data` montado en `/app/data`). Las ilustraciones van como archivos en `data/pictures/`. Un solo perfil por aula, sin cuentas.
+Cada niño tiene su perfil con un **ID secreto** (UUID aleatorio). Todo lo que hace se guarda con ese ID y nadie más lo ve ni lo cambia.
+
+- Al abrir la app: «¿Quién va a jugar?» con los niños creados **en ese dispositivo** (la lista de IDs vive en el navegador) y «Soy nuevo» (nombre + emoji). Desde la portada se puede cambiar de niño.
+- Cada pedido a la API lleva el ID en la cabecera `X-User`. Sin ID válido: 401. Un cuento de otro niño: 404.
+- Las ilustraciones se guardan con nombres aleatorios (`data/pictures/<uuid>.webp`), imposibles de adivinar.
+- La base es `data/escuela-v2.db` (la anterior, de un solo perfil, queda como respaldo y no se usa).
 
 | Tabla | Guarda |
 |---|---|
-| `profile` | Mi personaje: nombre, emoji, retrato y descripción |
-| `stars` | Estrellas ganadas (ejercicios y actividades con IA) |
-| `stories` + `story_pages` | Cada cuento: dibujo inicial, páginas, elección, ilustración y lectura (palabras leídas / totales) |
-| `activities` | Rondas de «Pipo se equivoca» y tarjetas de «Viaje en el tiempo», para medir el impacto |
+| `users` | Cada niño: ID, nombre, emoji, retrato y descripción |
+| `stars` | Estrellas por niño |
+| `stories` + `story_pages` | Cuentos por niño: dibujo, páginas, elección, ilustración y lectura |
+| `activities` | Rondas de mates y tarjetas de historia por niño |
 
 | Ruta | Hace |
 |---|---|
-| `GET /api/profile` · `PUT /api/profile` | Lee y guarda el personaje |
-| `GET /api/stars` · `POST /api/stars` | Estrellas (`{key}`) |
-| `POST /api/stories` | Abre un cuento con su dibujo → `{id}`. `/api/story` y `/api/picture` reciben `storyId` y guardan cada página e ilustración |
-| `POST /api/stories/:id/reading` | Guarda palabras leídas / totales |
-| `GET /api/stories?page=&limit=` | «Mis cuentos», paginado (20 por defecto, 100 máximo) |
-| `GET /api/stories/:id` | Un cuento con sus páginas, para releerlo |
-| `POST /api/activities` | Registra una ronda de mates o una tarjeta de historia |
+| `POST /api/users` | Crea un niño `{name, icon}` → su perfil con `id` |
+| `POST /api/users/lookup` | `{ids}` → perfiles que existen (para «¿Quién va a jugar?») |
+| `GET /api/profile` · `PUT /api/profile` | Personaje del niño (`X-User`) |
+| `GET /api/stars` · `POST /api/stars` | Estrellas del niño |
+| `POST /api/stories` | Abre un cuento del niño → `{id}`. `/api/story` y `/api/picture` con `storyId` solo guardan si el cuento es suyo |
+| `POST /api/stories/:id/reading` | Lectura del cuento (solo si es suyo) |
+| `GET /api/stories?page=&limit=` | «Mis cuentos» del niño, paginado (20 por defecto, 100 máximo) |
+| `GET /api/stories/:id` | Un cuento del niño |
+| `POST /api/activities` | Ronda de mates o tarjeta de historia del niño |
 
 Toda la voz de la app (también el «Escuchar» de los ejercicios) pasa por `/api/speak`.
