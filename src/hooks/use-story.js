@@ -11,7 +11,7 @@ const spoken = page => [page.text, page.question, page.draw].filter(Boolean).joi
 
 // Cuento con IA como un libro (estilo Drawn Worlds): el niño dibuja, la IA entiende el dibujo y escribe
 // una página por turno. A mitad del cuento le pide otro dibujo, que entra a la historia.
-// Cada página se narra, se puede leer en voz alta y se ilustra a partir del dibujo.
+// Cada página se narra, se puede leer en voz alta y se ilustra con la descripción del dibujo.
 export function useStory(onComplete) {
   const [phase, setPhase] = useState('draw');
   const [pages, setPages] = useState([]);
@@ -32,15 +32,14 @@ export function useStory(onComplete) {
   const storyId = useRef(null);
 
   // La ilustración llega después del texto; si no hay ilustrador queda 'none' y se muestra el dibujo
-  function illustrate(index, page, reference) {
+  function illustrate(index, page) {
     const done = url => setPictures(value => ({...value, [index]:url}));
     if (!page.picture) { done('none'); return; }
-    aiService.picture(page.picture, reference, seed.current, storyId.current, index + 1).then(done, () => done('none'));
+    aiService.picture(page.picture, seed.current, storyId.current, index + 1).then(done, () => done('none'));
   }
 
-  // reference: el dibujo que la ilustración de esta página tiene que recrear (si hay)
-  async function request(history, reference = '') {
-    pending.current = [history, reference];
+  async function request(history) {
+    pending.current = history;
     setPhase('loading');
     setError('');
     try {
@@ -49,7 +48,7 @@ export function useStory(onComplete) {
       setPhase('page');
       reading.show(page.text);
       // Voz e ilustración usan la misma CPU: primero la voz (suena en ~1 s) y después se pinta la página
-      narration.narrate(spoken(page)).finally(() => illustrate(history.length, page, reference));
+      narration.narrate(spoken(page)).finally(() => illustrate(history.length, page));
       if (page.end) onComplete();
     } catch (failure) {
       setError(failure.message);
@@ -67,7 +66,7 @@ export function useStory(onComplete) {
     // El cuento se guarda en la base local; si no se puede, igual se juega
     storyId.current = await schoolService.createStory(image).catch(() => null);
     look.current = await aiService.describe(image).catch(() => '');
-    request([], image);
+    request([]);
   }
 
   function choose(choice) {
@@ -89,7 +88,7 @@ export function useStory(onComplete) {
     setDrawing(image);
     setPhase('loading');
     const seen = await aiService.describe(image, pages.at(-1).draw).catch(() => '');
-    request(pages.with(-1, {...pages.at(-1), choice:'El niño dibujó: ' + (seen || 'algo muy especial')}), image);
+    request(pages.with(-1, {...pages.at(-1), choice:'El niño dibujó: ' + (seen || 'algo muy especial')}));
   }
 
   function restart() {
@@ -106,7 +105,7 @@ export function useStory(onComplete) {
   return {
     phase, error, page, number:pages.length, drawing, picture:pictures[pages.length - 1], summary, pad, reading, narration,
     start, choose, drawMore, finishDrawing, restart,
-    retry:() => request(...pending.current),
+    retry:() => request(pending.current),
     listen:() => { narration.stop(); reading.listen(page.text); },
     listenAgain:() => narration.speaking ? narration.stop() : narration.narrate(spoken(page))
   };

@@ -5,7 +5,7 @@ import {playClip, stopClip} from '../services/audio-player.js';
 const withoutEmoji = text => text.replace(/\p{Extended_Pictographic}|️/gu, '').trim();
 const sentences = text => withoutEmoji(text).split(/(?<=[.!?…])\s+/).filter(Boolean);
 
-// Narra con la voz del servidor (Kokoro local o Gemini) y, si no está, con la voz del navegador
+// Narra con la voz local del servidor (Kokoro) y, si no responde, con la voz del navegador
 export function useNarration() {
   const [speaking, setSpeaking] = useState(false);
   const clips = useRef(new Map());
@@ -15,7 +15,7 @@ export function useNarration() {
 
   function load(text, voice) {
     const key = voice + ':' + text;
-    // Si la voz falla (Gemini gratis: 3 audios por minuto) no se guarda, para reintentar después
+    // Si la voz falla no se guarda, para reintentar después
     if (!clips.current.has(key)) clips.current.set(key, aiService.speak(withoutEmoji(text), voice).catch(() => { clips.current.delete(key); return null; }));
     return clips.current.get(key);
   }
