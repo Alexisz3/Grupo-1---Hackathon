@@ -40,19 +40,21 @@ async function readJson(request, response, limit) {
   try { return JSON.parse(body); } catch { json(response, 400, {error:'Solicitud inválida'}); return null; }
 }
 
-async function storyRequest(request, response) {
+async function storyRequest(request, response, {user}) {
   const data = await readJson(request, response, 16384);
   if (response.headersSent) return;
   const story = cleanRequest(data);
-  const storyId = Number.isInteger(data?.storyId) && db.storyExists(data.storyId) ? data.storyId : null;
+  // Solo se guarda la página si el cuento es del niño que la pide
+  const storyId = user && db.ownsStory(user, data?.storyId) ? data.storyId : null;
   if (!story) { json(response, 400, {error:'Cuento inválido'}); return; }
   if (!aiReady()) { json(response, 503, {error:'La IA no está configurada'}); return; }
   const final = story.pages.length + 1 === storyLength;
   const drawTurn = story.pages.length + 1 === drawPage;
-  // Un reintento si el modelo devuelve una página incompleta
-  for (let attempt = 0; attempt < 2; attempt++) {
+  // Hasta 3 intentos si el modelo devuelve una página incompleta o un comienzo que no es de cuento;
+  // en el último se acepta la primera página aunque no empiece con «Había una vez»
+  for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      const page = cleanPage(await chatJson(storyMessages(story)), final, drawTurn);
+      const page = cleanPage(await chatJson(storyMessages(story)), final, drawTurn, story.pages.length === 0 && attempt < 2);
       if (!page) continue;
       if (storyId) db.savePage(storyId, story.pages.length + 1, page, story.pages.at(-1)?.choice);
       json(response, 200, page);
@@ -83,22 +85,21 @@ async function characterRequest(request, response) {
   if (!character) { json(response, 502, {error:'No pude entender el dibujo. Intenta otra vez.'}); return; }
   let image = '';
   if (pictureReady()) {
-    const picture = await paint(character.picture + ', single character, plain soft cream background', data.image, Math.floor(Math.random() * 1e6)).catch(() => null);
+    const picture = await paint(character.picture + ', single character, plain soft cream background', Math.floor(Math.random() * 1e6)).catch(() => null);
     if (picture) image = 'data:' + picture.type + ';base64,' + picture.data.toString('base64');
   }
   json(response, 200, {look:character.look, image});
 }
 
-async function pictureRequest(request, response) {
-  const data = await readJson(request, response, 450000);
+async function pictureRequest(request, response, {user}) {
+  const data = await readJson(request, response, 4096);
   if (response.headersSent) return;
-  const drawing = typeof data?.drawing === 'string' && data.drawing.startsWith('data:image/png;base64,') ? data.drawing : '';
   if (typeof data?.prompt !== 'string' || !data.prompt.trim() || data.prompt.length > 400) { json(response, 400, {error:'Ilustración inválida'}); return; }
   if (!pictureReady()) { json(response, 503, {error:'Las ilustraciones no están configuradas'}); return; }
   try {
-    const picture = await paint(data.prompt.trim(), drawing, Number.isInteger(data.seed) ? data.seed : 0);
-    // Con storyId y número de página, la ilustración queda guardada en data/pictures
-    if (Number.isInteger(data.storyId) && Number.isInteger(data.number) && db.storyExists(data.storyId)) db.savePicture(data.storyId, data.number, picture);
+    const picture = await paint(data.prompt.trim(), Number.isInteger(data.seed) ? data.seed : 0);
+    // Con storyId y número de página de un cuento del niño, la ilustración queda guardada en data/pictures
+    if (user && Number.isInteger(data.number) && db.ownsStory(user, data.storyId)) db.savePicture(data.storyId, data.number, picture);
     response.writeHead(200, {'Content-Type':picture.type, 'Content-Length':picture.data.length, 'Cache-Control':'no-store'});
     response.end(picture.data);
   } catch { json(response, 502, {error:'No pude pintar la página'}); }
@@ -179,71 +180,87 @@ async function mapRequest(request, response) {
   json(response, 200, {parts:localParts(capsule, episode, slot, input), source:'local'});
 }
 
-// Guardado local: perfil, estrellas, cuentos y actividades
+// Guardado por niño: cada ruta recibe el ID del niño (cabecera X-User) ya validado
 const isImage = (value, max) => typeof value === 'string' && value.startsWith('data:image/') && value.length <= max;
 const text = (value, max) => typeof value === 'string' ? value.trim().slice(0, max) : '';
 
-const profileGet = (request, response) => json(response, 200, db.getProfile());
+async function usersPost(request, response) {
+  const data = await readJson(request, response, 1024);
+  if (response.headersSent) return;
+  const name = text(data?.name, 24), icon = text(data?.icon, 8);
+  if (!name || !icon) { json(response, 400, {error:'Escribe tu nombre y elige un personaje'}); return; }
+  json(response, 201, db.createUser(name, icon));
+}
 
-async function profilePut(request, response) {
+// Solo devuelve los perfiles cuyos IDs ya conoce este dispositivo
+async function usersLookup(request, response) {
+  const data = await readJson(request, response, 8192);
+  if (response.headersSent) return;
+  if (!Array.isArray(data?.ids) || data.ids.length > 50) { json(response, 400, {error:'Lista inválida'}); return; }
+  json(response, 200, {items:db.findProfiles(data.ids)});
+}
+
+const profileGet = (request, response, {user}) => json(response, 200, db.getProfile(user));
+
+async function profilePut(request, response, {user}) {
   const data = await readJson(request, response, 750000);
   if (response.headersSent) return;
   const name = text(data?.name, 24), icon = text(data?.icon, 8);
   if (!name || !icon || (data.image !== null && !isImage(data.image, 700000))) { json(response, 400, {error:'Personaje inválido'}); return; }
-  db.saveProfile({name, icon, image:data.image, look:text(data.look, 160)});
-  json(response, 200, db.getProfile());
+  db.saveProfile(user, {name, icon, image:data.image, look:text(data.look, 160)});
+  json(response, 200, db.getProfile(user));
 }
 
-const starsGet = (request, response) => json(response, 200, {keys:db.starKeys()});
+const starsGet = (request, response, {user}) => json(response, 200, {keys:db.starKeys(user)});
 
-async function starsPost(request, response) {
+async function starsPost(request, response, {user}) {
   const data = await readJson(request, response, 1024);
   if (response.headersSent) return;
   if (typeof data?.key !== 'string' || !/^(math|story|history):(\d{1,2}|ia:\d{1,15})$/.test(data.key)) { json(response, 400, {error:'Estrella inválida'}); return; }
-  db.addStar(data.key);
+  db.addStar(user, data.key);
   json(response, 201, {key:data.key});
 }
 
-async function storiesPost(request, response) {
+async function storiesPost(request, response, {user}) {
   const data = await readJson(request, response, 450000);
   if (response.headersSent) return;
   if (!isImage(data?.drawing, 440000)) { json(response, 400, {error:'Dibujo inválido'}); return; }
-  json(response, 201, {id:db.createStory(data.drawing)});
+  json(response, 201, {id:db.createStory(user, data.drawing)});
 }
 
-function storiesList(request, response, {url}) {
+function storiesList(request, response, {url, user}) {
   const page = Math.max(1, Number.parseInt(url.searchParams.get('page'), 10) || 1);
   const limit = Math.min(100, Math.max(1, Number.parseInt(url.searchParams.get('limit'), 10) || 20));
-  json(response, 200, db.listStories(page, limit));
+  json(response, 200, db.listStories(user, page, limit));
 }
 
-function storyGet(request, response, {id}) {
-  const story = db.getStory(id);
+function storyGet(request, response, {id, user}) {
+  const story = db.getStory(user, id);
   story ? json(response, 200, story) : json(response, 404, {error:'Cuento no encontrado'});
 }
 
-async function readingPost(request, response, {id}) {
+async function readingPost(request, response, {id, user}) {
   const data = await readJson(request, response, 1024);
   if (response.headersSent) return;
   const valid = Number.isInteger(data?.read) && Number.isInteger(data?.total) && data.read >= 0 && data.read <= data.total && data.total <= 5000;
-  if (!valid || !db.storyExists(id)) { json(response, valid ? 404 : 400, {error:'Lectura inválida'}); return; }
+  if (!valid || !db.ownsStory(user, id)) { json(response, valid ? 404 : 400, {error:'Lectura inválida'}); return; }
   db.saveReading(id, data.read, data.total);
   json(response, 200, {id, read:data.read, total:data.total});
 }
 
-async function activitiesPost(request, response) {
+async function activitiesPost(request, response, {user}) {
   const data = await readJson(request, response, 4096);
   if (response.headersSent) return;
   const detail = JSON.stringify(data?.detail ?? null);
   if (!['math', 'history'].includes(data?.zone) || !/^[a-z-]{1,20}$/.test(data?.kind ?? '') || typeof data.detail !== 'object' || detail.length > 2000) {
     json(response, 400, {error:'Actividad inválida'}); return;
   }
-  db.addActivity(data.zone, data.kind, data.detail);
+  db.addActivity(user, data.zone, data.kind, data.detail);
   json(response, 201, {saved:true});
 }
 
 async function pictureFile(request, response, pathname) {
-  const file = pathname.match(/^\/pictures\/(\d+-\d+\.webp)$/)?.[1];
+  const file = pathname.match(/^\/pictures\/([0-9a-f-]{36}\.webp)$/)?.[1];
   if (!file) { response.writeHead(404).end(); return; }
   try {
     const contents = await fs.readFile(db.picturesDir + file);
@@ -274,11 +291,15 @@ async function staticRequest(request, response, pathname) {
   }
 }
 
+// Rutas que necesitan saber qué niño pide (cabecera X-User); sin un ID válido responden 401
+const personal = new Set(['GET /api/profile', 'PUT /api/profile', 'GET /api/stars', 'POST /api/stars', 'GET /api/stories', 'POST /api/stories',
+  'GET /api/stories/:id', 'POST /api/stories/:id/reading', 'POST /api/activities']);
+
 const routes = {
   'POST /api/map':mapRequest, 'POST /api/story':storyRequest, 'POST /api/look':lookRequest, 'POST /api/speak':speakRequest,
   'POST /api/picture':pictureRequest, 'POST /api/character':characterRequest, 'POST /api/math/problem':mathProblemRequest,
   'POST /api/math/teach':mathTeachRequest, 'POST /api/history':historyRequest,
-  'GET /api/profile':profileGet, 'PUT /api/profile':profilePut, 'GET /api/stars':starsGet, 'POST /api/stars':starsPost,
+  'POST /api/users':usersPost, 'POST /api/users/lookup':usersLookup, 'GET /api/profile':profileGet, 'PUT /api/profile':profilePut, 'GET /api/stars':starsGet, 'POST /api/stars':starsPost,
   'GET /api/stories':storiesList, 'POST /api/stories':storiesPost, 'GET /api/stories/:id':storyGet, 'POST /api/stories/:id/reading':readingPost,
   'POST /api/activities':activitiesPost
 };
@@ -287,9 +308,16 @@ http.createServer(async (request, response) => {
   try {
     const url = new URL(request.url, 'http://localhost');
     const {pathname} = url;
+    // Registro de cada pedido a la API (sin datos del niño): para ver en vivo con «docker compose logs -f app»
+    if (pathname.startsWith('/api/')) {
+      const started = Date.now();
+      response.on('finish', () => console.log(new Date().toISOString().slice(11, 19), request.method, pathname, response.statusCode, (Date.now() - started) + 'ms'));
+    }
     const storyPath = pathname.match(/^\/api\/stories\/(\d+)(\/reading)?$/);
-    const route = routes[request.method + ' ' + (storyPath ? '/api/stories/:id' + (storyPath[2] || '') : pathname)];
-    if (route) await route(request, response, {url, id:storyPath && Number(storyPath[1])});
+    const key = request.method + ' ' + (storyPath ? '/api/stories/:id' + (storyPath[2] || '') : pathname);
+    const user = db.userExists(request.headers['x-user']) ? request.headers['x-user'] : null;
+    if (personal.has(key) && !user) json(response, 401, {error:'¿Quién está jugando? Elige tu perfil.'});
+    else if (routes[key]) await routes[key](request, response, {url, user, id:storyPath && Number(storyPath[1])});
     else if (request.method === 'GET' && pathname.startsWith('/pictures/')) await pictureFile(request, response, pathname);
     else await staticRequest(request, response, pathname);
   } catch {

@@ -1,5 +1,7 @@
+import {session} from './session.js';
+
 async function post(path, body) {
-  const result = await fetch(path, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+  const result = await fetch(path, {method:'POST', headers:session.headers({'Content-Type':'application/json'}), body:JSON.stringify(body)});
   if (!result.ok) throw new Error((await result.json().catch(() => ({}))).error || 'No pude conectar con la IA');
   return result;
 }
@@ -9,7 +11,7 @@ export const aiService = {
   character: async (image, hint) => (await post('/api/character', {image, hint})).json(),
   describe: async (image, request) => (await (await post('/api/look', {image, request})).json()).look,
   // storyId y number guardan la ilustración en la base local
-  picture: async (prompt, drawing, seed, storyId, number) => URL.createObjectURL(await (await post('/api/picture', {prompt, drawing, seed, storyId, number})).blob()),
+  picture: async (prompt, seed, storyId, number) => URL.createObjectURL(await (await post('/api/picture', {prompt, seed, storyId, number})).blob()),
   speak: async (text, voice) => (await post('/api/speak', {text, voice})).arrayBuffer(),
   mathProblem: async (hero, level, operation) => (await post('/api/math/problem', {hero, level, operation})).json(),
   mathTeach: async (hero, problem, explanation) => (await (await post('/api/math/teach', {hero, problem, explanation})).json()).reply,
