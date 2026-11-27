@@ -14,6 +14,7 @@ import {StoryShelf} from './screens/story/components/story-shelf.jsx';
 import StudioScreen from './screens/studio/studio-screen.jsx';
 import {useSchool} from './hooks/use-school.js';
 import ProfilesScreen from './screens/profiles/profiles-screen.jsx';
+import {getTransferEpisode, getTransferVariantCount, practiceBands} from './learning-content.mjs';
 import './style.css';
 
 // La actividad con IA de cada zona, arriba de los ejercicios
@@ -27,6 +28,8 @@ function Catalog({capsule, zone, buddy, progress, onHome, onSelect, onAgent, onR
   const [agentTitle, agentDetail] = agents[zone](buddy);
   const heading = useRef(null);
   const count = capsule.cases.filter((_,index) => progress[zone + ':' + index]).length;
+  const bands = practiceBands(zone);
+  const order = bands.flatMap(band => band.episodes);
   useEffect(() => { heading.current?.focus(); }, [zone]);
   return <main className="catalog" data-color={capsule.color}>
     <button type="button" className="control" onClick={onHome}><ChevronLeft size={19} /> Aula</button>
@@ -46,23 +49,30 @@ function Catalog({capsule, zone, buddy, progress, onHome, onSelect, onAgent, onR
         <h2>Elige un ejercicio</h2>
         <span className="progress"><Star size={17} /> {count} de {capsule.cases.length}</span>
       </div>
-      <ol className="exercise-list">
-        {capsule.cases.map((activity,index) => {
-          const completed = progress[zone + ':' + index];
-          return <li key={activity.title}>
-            <button type="button" onClick={() => onSelect(index)}>
-              <span className="exercise-number" aria-hidden="true">{index + 1}</span>
-              <strong>{activity.title}</strong>
-              {completed ? <Check size={20} aria-label="Completado" /> : <ArrowRight size={20} aria-hidden="true" />}
-            </button>
-          </li>;
-        })}
-      </ol>
+      {bands.map(band => <section key={band.id} className="catalog-band" aria-labelledby={'band-' + band.id}>
+        <div className="band-heading">
+          <h3 id={'band-' + band.id}>{band.label}</h3>
+          <p>{band.description}</p>
+        </div>
+        <ol className="exercise-list">
+          {band.episodes.map(index => {
+            const activity = capsule.cases[index];
+            const completed = progress[zone + ':' + index];
+            return <li key={activity.title}>
+              <button type="button" onClick={() => onSelect(index)}>
+                <span className="exercise-number" aria-hidden="true">{order.indexOf(index) + 1}</span>
+                <strong>{activity.title}</strong>
+                {completed ? <Check size={20} aria-label="Completado" /> : <ArrowRight size={20} aria-hidden="true" />}
+              </button>
+            </li>;
+          })}
+        </ol>
+      </section>)}
     </section>
   </main>;
 }
 
-function Result({buddy, independent, onCatalog, onReplay}) {
+function Result({buddy, result, onCatalog, onReplay}) {
   const heading = useRef(null);
   useEffect(() => {heading.current?.focus();}, []);
   return <main className="result">
@@ -70,7 +80,15 @@ function Result({buddy, independent, onCatalog, onReplay}) {
       <Star aria-hidden="true" className="award" size={78} />
       <h1 tabIndex={-1} ref={heading}>¡Gracias, profe!</h1>
       <p>Le enseñaste a {buddy.name} en dos situaciones.</p>
-      <p className="progress">{independent ? 'Reto nuevo completado sin pistas' : 'Reto nuevo completado con ayuda'}</p>
+      <p className="progress">{result.fresh ? 'Reto nuevo' : 'Reto de repaso'} {result.hints || result.corrections ? 'completado con ayuda' : 'completado sin pistas ni correcciones'}</p>
+      <dl className="result-metrics" aria-label="Tu reto">
+        <div><dt>Mapa al primer intento</dt><dd>{result.mapFirst} de 3</dd></div>
+        <div><dt>Explicación al primer intento</dt><dd>{result.reasonFirst ? 'Sí' : 'Después de corregir'}</dd></div>
+        <div><dt>Ayuda en el reto</dt><dd>{result.hints || result.corrections ? [
+          result.hints ? result.hints + (result.hints === 1 ? ' pista' : ' pistas') : '',
+          result.corrections ? result.corrections + (result.corrections === 1 ? ' corrección' : ' correcciones') : ''
+        ].filter(Boolean).join(' y ') : 'Sin ayuda'}</dd></div>
+      </dl>
       <div className="result-actions">
         <button type="button" className="control" onClick={onReplay}>Volver a jugar</button>
         <button type="button" className="primary" onClick={onCatalog}>Más ejercicios <ArrowRight size={22} /></button>
@@ -87,8 +105,9 @@ function Classroom({school}) {
   const [exercise,setExercise] = useState(0);
   const [studio,setStudio] = useState(false);
   const [attempt,setAttempt] = useState(0);
-  const [independent,setIndependent] = useState(false);
+  const [result,setResult] = useState(null);
   const [reading,setReading] = useState(null);
+  const transfersSeen = useRef(new Set());
 
   function goHome() {
     setScreen('home');
@@ -112,11 +131,20 @@ function Classroom({school}) {
   // Las estrellas de la IA no cuentan en «N de 10» del catálogo, solo en los premios de la portada
   const earnAgentStar = () => addStar(zone + ':ia:' + Date.now());
 
-  function finish(withoutHelp) {
+  function finish(metrics) {
     addStar(zone + ':' + exercise);
-    setIndependent(withoutHelp);
+    setResult(metrics);
     setScreen('result');
     window.scrollTo(0,0);
+  }
+
+  function chooseTransfer() {
+    const variants = Array.from({length:getTransferVariantCount(zone, exercise)}, (_, index) =>
+      getTransferEpisode(zone, exercise, index));
+    const unseen = variants.find(episode => !transfersSeen.current.has(zone + ':' + episode));
+    const episode = unseen ?? variants[0];
+    transfersSeen.current.add(zone + ':' + episode);
+    return {episode, fresh:unseen !== undefined};
   }
 
   return <>
@@ -132,8 +160,9 @@ function Classroom({school}) {
       {screen === 'agent' && zone === 'story' && <StoryScreen onBack={() => openZone(zone)} onComplete={earnAgentStar} />}
       {screen === 'agent' && zone === 'history' && <TimeTravelScreen onBack={() => openZone(zone)} onComplete={earnAgentStar} />}
       {screen === 'workshop' && <Workshop key={zone + attempt} capsuleId={zone} capsule={capsules[zone]} initial={exercise}
-        buddy={buddy} onBack={() => openZone(zone)} onStudio={() => setStudio(true)} onFinish={finish} />}
-      {screen === 'result' && <Result buddy={buddy} independent={independent} onCatalog={() => openZone(zone)} onReplay={() => openExercise(exercise)} />}
+        buddy={buddy} onBack={() => openZone(zone)} onStudio={() => {window.speechSynthesis?.cancel();setStudio(true);}}
+        onTransfer={chooseTransfer} onFinish={finish} />}
+      {screen === 'result' && <Result buddy={buddy} result={result} onCatalog={() => openZone(zone)} onReplay={() => openExercise(exercise)} />}
     </div>
     {studio && <StudioScreen buddy={buddy}
       onSave={next => {saveBuddy(next);setStudio(false);}} onBack={() => setStudio(false)} />}

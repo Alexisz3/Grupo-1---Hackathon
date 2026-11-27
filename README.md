@@ -1,6 +1,6 @@
 # Escuela Semilla
 
-Aula interactiva con agentes del **Grupo 1** para primer grado. Los niños enseñan a un personaje con fichas, texto o dictado. El personaje devuelve un mapa editable, pregunta por la primera idea que necesita aclarar y propone otra situación para practicar. El catálogo tiene diez ejercicios en cada área de Matemáticas, Lenguaje e Historia. Cada ejercicio utiliza el siguiente caso del área como reto.
+Aula interactiva con agentes del **Grupo 1** para primer grado. Los niños enseñan a un personaje con fichas, texto o dictado. El personaje conserva lo que entendió y pregunta por una idea a la vez. Cuando identifica un error, muestra la respuesta correcta y explica por qué antes de que el niño corrija su mapa. El catálogo tiene diez ejercicios por área de Matemáticas, Lenguaje e Historia. Los niveles son Identificar, Conectar y Explicar. La app alterna entre dos casos reservados por nivel y área. Si ya mostró ambos en esa sesión, el siguiente aparece como reto de repaso.
 
 ## Levantar con Docker
 
@@ -29,12 +29,16 @@ Requiere Node.js 22.13 o posterior y pnpm: `pnpm install --frozen-lockfile`, `pn
 
 ## Agregar cápsulas
 
-- `src/capsules.mjs` y `src/extra-cases.mjs` contienen los casos y sus mapas. Cada caso declara la escena, las tres casillas, las fichas, la respuesta esperada y una pista por casilla. El catálogo y los totales se generan a partir de esos datos.
-- `src/Workshop.jsx` implementa enseñar, revisar, editar y probar un caso nuevo. La corrección contrasta las fichas con el contenido preparado de cada caso.
-- `src/interpreter.mjs` interpreta frases cortas localmente. `server.js` consulta el modelo local (Ollama) mediante `MODEL_URL` y `MODEL_NAME`. El servidor acepta únicamente IDs de fichas incluidas en el caso. El modelo interpreta la explicación y la revisión del tablero aplica las reglas de la cápsula.
+- `src/capsules.mjs` y `src/extra-cases.mjs` contienen los casos y sus mapas. Cada caso declara la escena, las tres casillas, las fichas, la respuesta esperada y una pista por casilla. El catálogo y los totales se generan a partir de esos datos. `src/learning-content.mjs` asigna los niveles, explica la respuesta de cada casilla y define los retos reservados con sus preguntas de razonamiento.
+- `src/Workshop.jsx` implementa enseñar, revisar, corregir y aplicar la idea. La corrección contrasta las fichas con el contenido preparado de cada caso. Para aclarar una expresión dudosa, el personaje le pide al niño que elija una ficha.
+- `src/interpreter.mjs` interpreta frases cortas localmente. Si no reconoce ninguna idea, `server.js` consulta el modelo local (Ollama) mediante `MODEL_URL` y `MODEL_NAME`. El servidor acepta únicamente IDs de fichas incluidas en el caso, y el niño confirma la sugerencia antes de aplicarla.
 - `src/screens/studio/` es «Mi personaje»: el niño dibuja en el mismo tablero del cuento y escribe qué es; la IA lo describe y el ilustrador pinta su retrato. El personaje, las estrellas, los cuentos y las actividades se guardan solo en la base local (volumen de Docker); al modelo de texto le llegan el dibujo y lo que el niño escribe o dicta, nunca su nombre real.
 
-La pantalla final indica si se resolvió el nuevo mapa sin corrección ni pistas. El resultado corresponde a esa sesión. Para evaluar aprendizaje, conviene observar también cómo explica el niño su respuesta con sus propias palabras o dibujos.
+## Qué medir en una prueba con niños
+
+La pantalla final muestra cuántas casillas estaban bien en la primera revisión, si el niño reconoció la explicación correcta en su primer intento y cuántas pistas o correcciones recibió en el reto. Los resultados se mantienen en la sesión. Elegir una explicación entre fichas sirve como evidencia de reconocimiento.
+
+Para observar si un niño puede explicar la idea por su cuenta, prepara dos casos equivalentes que no estén en el catálogo ni en los retos de la app. Antes de la cápsula, presenta uno y pídele que muestre o explique el paso clave. Después, repite con el otro caso y con la misma instrucción. Alterna el orden de los casos entre participantes. Registra el acierto, la explicación del paso clave y la ayuda recibida en columnas distintas. Usa una escala sencilla para la explicación: 0 si no la presenta, 1 si menciona una parte y 2 si conecta las ideas necesarias. Reporta el número de participantes y los resultados observados.
 
 ## Referencias de diseño
 

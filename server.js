@@ -1,8 +1,9 @@
 const http = require('node:http');
 const fs = require('node:fs/promises');
 const path = require('node:path');
-const {capsules, filterParts} = require('./src/capsules.mjs');
-const {localParts, mapModelTimeout} = require('./src/interpreter.mjs');
+const {filterParts} = require('./src/capsules.mjs');
+const {getActivity} = require('./src/learning-content.mjs');
+const {interpretExplanation, mapModelTimeout} = require('./src/interpreter.mjs');
 const {extract} = require('./src/math.mjs');
 const {aiReady, chatJson, paint, pictureReady, speak, voiceReady} = require('./src/ai.mjs');
 const {characterMessages, cleanCharacter, cleanLook, cleanPage, cleanRequest, drawPage, lookMessages, storyLength, storyMessages} = require('./src/story.mjs');
@@ -168,16 +169,20 @@ async function mapRequest(request, response) {
   }
   if (data.capsule === undefined) { json(response, 200, {parts:extract(data.input)}); return; }
   const {capsule, episode, slot, input} = data;
-  const activity = Object.hasOwn(capsules, capsule) && Number.isInteger(episode) && capsules[capsule].cases[episode];
+  const activity = typeof capsule === 'string' && Number.isInteger(episode) && getActivity(capsule, episode);
   if (!activity || !Number.isInteger(slot) || !activity.steps[slot]) {
     json(response, 400, {error:'Actividad inválida'}); return;
   }
-  const model = await modelParts(activity, slot, input);
-  if (model && Object.keys(model).length) {
-    json(response, 200, {parts:model, source:'model'});
-    return;
+  const local = interpretExplanation(capsule, activity, slot, input);
+  if (Object.keys(local.parts).length || local.uncertainSlots.length) {
+    json(response, 200, local); return;
   }
-  json(response, 200, {parts:localParts(capsule, episode, slot, input), source:'local'});
+  const suggested = await modelParts(activity, slot, input);
+  if (suggested && Object.keys(suggested).length) {
+    json(response, 200, {parts:suggested, uncertainSlots:Object.keys(suggested).map(Number)});
+  } else {
+    json(response, 200, local);
+  }
 }
 
 // Guardado por niño: cada ruta recibe el ID del niño (cabecera X-User) ya validado
