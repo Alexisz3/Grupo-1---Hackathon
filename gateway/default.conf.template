@@ -1,0 +1,24 @@
+# Puerta de entrada a la IA de la PC (modo dividido). Solo deja pasar pedidos con la clave AI_TOKEN.
+# Rutas: texto (Ollama), voz (Kokoro) e ilustraciones (SD-Turbo). Todo lo demás: 404.
+server {
+  listen 8080;
+  client_max_body_size 2m;
+  proxy_read_timeout 180s;
+  proxy_send_timeout 180s;
+
+  # Si un servicio no está levantado, nginx igual arranca: resuelve los nombres en cada pedido
+  resolver 127.0.0.11 valid=10s;
+  set $ollama http://ollama:11434;
+  set $voice http://voice:8880;
+  set $painter http://painter:7860;
+
+  # Sin clave configurada la puerta queda cerrada (evita que «Bearer » vacío deje pasar)
+  set $token "${AI_TOKEN}";
+  if ($token = "") { return 503; }
+  if ($http_authorization != "Bearer $token") { return 401; }
+
+  location = /v1/chat/completions { proxy_pass $ollama; }
+  location = /v1/audio/speech { proxy_pass $voice; }
+  location = /generate { proxy_pass $painter; }
+  location / { return 404; }
+}

@@ -1,5 +1,9 @@
 # Escuela Semilla con Docker. Guía completa: docs/docker.md
-# Todo junto: ./scripts/escuela.sh up   (o: docker compose --profile voice --profile images up -d --build)
+# Toda la IA es propia: texto con Ollama (Gemma), voz con Kokoro e ilustraciones con SD-Turbo.
+#
+#   Todo en una máquina:  ./scripts/escuela.sh up      (perfiles texto, voice, images)
+#   Modo dividido, PC:    ./scripts/escuela.sh ia      (la IA + puerta con clave + túnel https)
+#   Modo dividido, AWS:   ./scripts/escuela.sh app     (solo la app; AI_URL y AI_TOKEN en .env)
 name: escuela-semilla
 
 services:
@@ -9,10 +13,13 @@ services:
     # Por defecto solo en esta máquina. En un servidor: APP_BIND=0.0.0.0 en .env (o usar el perfil tunnel)
     ports: ["${APP_BIND:-127.0.0.1}:${APP_PORT:-3000}:3000"]
     env_file: [{path: .env, required: false}]
-    # Dentro de Docker la voz y el ilustrador se llaman por nombre de servicio
+    # La IA está en esta misma máquina (por nombre de servicio) o, en modo dividido, detrás de AI_URL con la clave AI_TOKEN
     environment:
-      TTS_URL: http://voice:8880/v1/audio/speech
-      IMAGE_URL: http://painter:7860/generate
+      MODEL_URL: ${AI_URL:-http://ollama:11434}/v1/chat/completions
+      MODEL_NAME: ${OLLAMA_MODEL:-gemma3:4b}
+      TTS_URL: ${AI_URL:-http://voice:8880}/v1/audio/speech
+      IMAGE_URL: ${AI_URL:-http://painter:7860}/generate
+      AI_TOKEN: ${AI_TOKEN:-}
     volumes: [data:/app/data]
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/').then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
@@ -36,6 +43,9 @@ services:
   painter:
     build: ./painter
     profiles: [images]
+    # stabilityai/sd-turbo (rápido) o stabilityai/sdxl-turbo (mejor calidad, ~3 veces más lento y ~10 GB de RAM)
+    environment:
+      PAINTER_MODEL: ${PAINTER_MODEL:-stabilityai/sd-turbo}
     ports: ["127.0.0.1:7860:7860"]
     volumes: [models:/models]
     healthcheck:
@@ -45,11 +55,10 @@ services:
       retries: 10
     restart: unless-stopped
 
-  # Texto con IA local, sin clave (gemma3:4b, CPU). Perfil ollama. En .env:
-  # MODEL_URL=http://ollama:11434/v1/chat/completions  MODEL_NAME=gemma3:4b  (MODEL_KEY y MODEL_EFFORT vacíos)
+  # Texto con IA local (Gemma en CPU): cuentos, Pipo, personajes y entender dibujos. Perfil texto. El modelo se elige con OLLAMA_MODEL
   ollama:
     image: ollama/ollama:latest
-    profiles: [ollama]
+    profiles: [texto]
     volumes: [ollama:/root/.ollama]
     environment:
       OLLAMA_MODEL: ${OLLAMA_MODEL:-gemma3:4b}
@@ -63,7 +72,28 @@ services:
       retries: 10
     restart: unless-stopped
 
-  # Enlace https público y temporal (el micrófono del navegador exige https). Perfil tunnel.
+  # Modo dividido: puerta de entrada a la IA de esta PC, con clave (AI_TOKEN). Perfil gateway
+  gateway:
+    image: nginx:1.27-alpine
+    profiles: [gateway]
+    environment:
+      # La crea ./scripts/escuela.sh ia. Sin clave, la puerta rechaza todo
+      AI_TOKEN: ${AI_TOKEN:-}
+      NGINX_ENVSUBST_FILTER: AI_TOKEN
+    volumes: ["./gateway/default.conf.template:/etc/nginx/templates/default.conf.template:ro"]
+    ports: ["127.0.0.1:8088:8080"]
+    restart: unless-stopped
+
+  # Modo dividido: enlace https público de la puerta de la IA, para que la app en AWS la alcance. Perfil gateway
+  # El enlace aparece en: docker compose logs ai-tunnel | grep trycloudflare
+  ai-tunnel:
+    image: cloudflare/cloudflared:latest
+    profiles: [gateway]
+    command: tunnel --no-autoupdate --url http://gateway:8080
+    depends_on: [gateway]
+    restart: unless-stopped
+
+  # Enlace https público y temporal de la app (el micrófono del navegador exige https). Perfil tunnel.
   # El enlace aparece en: docker compose logs tunnel | grep trycloudflare
   tunnel:
     image: cloudflare/cloudflared:latest
