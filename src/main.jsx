@@ -13,6 +13,7 @@ import StoryScreen from './screens/story/story-screen.jsx';
 import {StoryShelf} from './screens/story/components/story-shelf.jsx';
 import StudioScreen from './screens/studio/studio-screen.jsx';
 import {useSchool} from './hooks/use-school.js';
+import ProfilesScreen from './screens/profiles/profiles-screen.jsx';
 import './style.css';
 
 // La actividad con IA de cada zona, arriba de los ejercicios
@@ -78,8 +79,9 @@ function Result({buddy, independent, onCatalog, onReplay}) {
   </main>;
 }
 
-function App() {
-  const {buddy, progress, saveError, saveBuddy, addStar} = useSchool();
+// El aula del niño que está jugando; al cambiar de niño se desmonta y empieza de cero
+function Classroom({school}) {
+  const {buddy, progress, saveError, saveBuddy, addStar} = school;
   const [screen,setScreen] = useState('home');
   const [zone,setZone] = useState(null);
   const [exercise,setExercise] = useState(0);
@@ -122,7 +124,7 @@ function App() {
       <button type="button" className="wordmark" onClick={goHome}><span><Sprout size={22} /></span> Escuela Semilla</button>
     </div></header>
     <div hidden={studio}>
-      {screen === 'home' && <HomeScreen buddy={buddy} stars={Object.keys(progress).length} onOpen={openZone} onStudio={() => setStudio(true)} />}
+      {screen === 'home' && <HomeScreen buddy={buddy} stars={Object.keys(progress).length} onOpen={openZone} onStudio={() => setStudio(true)} onSwitch={school.switchChild} />}
       {screen === 'catalog' && <Catalog capsule={capsules[zone]} zone={zone} buddy={buddy} progress={progress}
         onHome={goHome} onSelect={openExercise} onAgent={() => setScreen('agent')} onRead={id => {setReading(id);setScreen('reader');window.scrollTo(0,0);}} />}
       {screen === 'reader' && <StoryReaderScreen id={reading} onBack={() => openZone('story')} />}
@@ -137,6 +139,11 @@ function App() {
       onSave={next => {saveBuddy(next);setStudio(false);}} onBack={() => setStudio(false)} />}
     {saveError && <p className="save-error" role="alert">{saveError}</p>}
   </>;
+}
+
+function App() {
+  const school = useSchool();
+  return school.phase === 'ready' ? <Classroom key={school.buddy.id} school={school} /> : <ProfilesScreen school={school} />;
 }
 
 createRoot(document.getElementById('root')).render(<App />);

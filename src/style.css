@@ -399,3 +399,16 @@ button.pill:hover { background: #fff; }
 .shelf-book small { color: #6b5a4a; }
 .shelf-book:hover { box-shadow: 0 8px 20px #7a4a1f38; }
 .reader-nav { display: flex; justify-content: space-between; gap: 10px; margin-top: 10px; }
+
+/* ¿Quién va a jugar? */
+.profiles { align-content: center; }
+.children-grid { list-style: none; display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; margin: 0; padding: 0; }
+.child-card { display: grid; justify-items: center; gap: 8px; min-width: 150px; padding: 16px 20px; border: 0; border-radius: 26px; background: #fff; color: #1e1e1e; font-size: 1.3rem; box-shadow: var(--warm-shadow); }
+.child-card .avatar { width: 96px; height: 96px; border-radius: 50%; font-size: 3.4rem; }
+.child-card:hover { transform: translateY(-3px); }
+.new-child { display: grid; justify-items: center; gap: 12px; width: min(100%, 520px); padding: 22px; border-radius: 30px; background: #fff; box-shadow: var(--warm-shadow); }
+.new-child h2 { color: var(--blue); font-size: clamp(1.3rem, 3vw, 1.7rem); text-align: center; }
+.new-child input { width: 100%; min-height: 54px; font-size: 1.3rem; text-align: center; }
+.icon-choices { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.icon-choices button { width: 56px; height: 56px; border: 3px solid transparent; border-radius: 50%; background: #fff7ec; font-size: 2rem; }
+.icon-choices button[aria-pressed="true"] { border-color: var(--orange); background: #ffe8c7; }
