@@ -49,7 +49,20 @@ Abrir **<http://127.0.0.1:3000>**. La primera vez tarda (baja ~8 GB); después a
 ./scripts/escuela.sh up --ollama
 ```
 
-El script ajusta `.env` para usar Ollama. Es más lento en CPU (6 a 10 s por página del cuento), pero no necesita internet después de la primera descarga.
+El script ajusta `.env` para usar Ollama. La primera descarga requiere internet. Luego, el tiempo de respuesta depende de la CPU y de si el modelo ya está cargado. Para probar solo la app y Gemma, agrega `--sin-voz --sin-imagenes`.
+
+### Probar Gemma en Windows sin Docker
+
+Abre [Ollama](https://docs.ollama.com/windows) y ejecuta estos comandos desde la carpeta del proyecto:
+
+```powershell
+ollama pull gemma3:4b
+pnpm install --frozen-lockfile
+pnpm build
+pnpm start:gemma
+```
+
+Abre <http://127.0.0.1:3000>. En una cápsula, usa «Con mis palabras» para probar cómo prepara las tarjetas. Si el modelo tarda demasiado, el intérprete de la cápsula permite continuar. También puedes probar una pregunta propia en Historia.
 
 ### En Windows (PowerShell), sin el script
 

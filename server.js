@@ -2,7 +2,7 @@ const http = require('node:http');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const {capsules, filterParts} = require('./src/capsules.mjs');
-const {localParts} = require('./src/interpreter.mjs');
+const {localParts, mapModelTimeout} = require('./src/interpreter.mjs');
 const {extract} = require('./src/math.mjs');
 const {aiReady, chatJson, paint, pictureReady, speak, voiceReady} = require('./src/ai.mjs');
 const {characterMessages, cleanCharacter, cleanLook, cleanPage, cleanRequest, drawPage, lookMessages, storyLength, storyMessages} = require('./src/story.mjs');
@@ -27,7 +27,7 @@ async function modelParts(activity, slot, input) {
         slots:activity.steps.map(step => step.label), cards:activity.cards.map(({id,label}) => ({id,label})),
         activeSlot:slot, explanation:input
       })}
-    ], 4800));
+    ], mapModelTimeout));
   } catch { return null; }
 }
 
@@ -171,8 +171,12 @@ async function mapRequest(request, response) {
   if (!activity || !Number.isInteger(slot) || !activity.steps[slot]) {
     json(response, 400, {error:'Actividad inválida'}); return;
   }
-  const parts = await modelParts(activity, slot, input) ?? localParts(capsule, episode, slot, input);
-  json(response, 200, {parts});
+  const model = await modelParts(activity, slot, input);
+  if (model && Object.keys(model).length) {
+    json(response, 200, {parts:model, source:'model'});
+    return;
+  }
+  json(response, 200, {parts:localParts(capsule, episode, slot, input), source:'local'});
 }
 
 // Guardado local: perfil, estrellas, cuentos y actividades

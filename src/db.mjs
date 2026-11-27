@@ -1,8 +1,9 @@
 // Guardado local: SQLite (incluido en Node) en DATA_DIR; en Docker es el volumen «data»
 import {mkdirSync, writeFileSync} from 'node:fs';
 import {DatabaseSync} from 'node:sqlite';
+import {fileURLToPath} from 'node:url';
 
-export const dataDir = process.env.DATA_DIR || new URL('../data/', import.meta.url).pathname;
+export const dataDir = process.env.DATA_DIR || fileURLToPath(new URL('../data/', import.meta.url));
 export const picturesDir = dataDir + 'pictures/';
 mkdirSync(picturesDir, {recursive:true});
 

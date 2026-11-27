@@ -1,6 +1,9 @@
 import {capsules, filterParts, interpretWords} from './capsules.mjs';
 import {extract} from './math.mjs';
 
+// En CPU, Ollama puede tardar varios segundos en interpretar una explicación.
+export const mapModelTimeout = 18000;
+
 export function localParts(capsule, episode, slot, input) {
   if (capsule !== 'math') return interpretWords(capsule, episode, input, slot);
   const parts = extract(input);

@@ -2,7 +2,7 @@ import {useEffect, useRef, useState} from 'react';
 import {ArrowRight, Check, ChevronLeft, Ear, Lightbulb, Mic, Pencil, RotateCcw, Volume2} from 'lucide-react';
 import {filterParts} from './capsules.mjs';
 import {useNarration} from './hooks/use-narration.js';
-import {localParts} from './interpreter.mjs';
+import {localParts, mapModelTimeout} from './interpreter.mjs';
 
 export function Avatar({buddy, className = ''}) {
   return <span className={'avatar ' + className} aria-hidden="true">
@@ -90,7 +90,7 @@ function Explanation({capsuleId, activity, episode, slot, onInterpret, onBusy, b
       const response = await fetch('/api/map', {
         method:'POST', headers:{'Content-Type':'application/json'},
         body:JSON.stringify({capsule:capsuleId, episode, slot, input:explanation}),
-        signal:AbortSignal.any([controller.signal, AbortSignal.timeout(6000)])
+        signal:AbortSignal.any([controller.signal, AbortSignal.timeout(mapModelTimeout + 2000)])
       });
       if (response.ok) {
         const remote = filterParts(activity, (await response.json()).parts);
