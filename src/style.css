@@ -295,9 +295,16 @@ button.pill:hover { background: #fff; }
 
 /* Matemáticas: Pipo se equivoca */
 .count-board { display: grid; gap: 10px; justify-items: center; text-align: center; margin: 12px 0; padding: clamp(12px, 3vw, 22px); border-radius: 18px; background: #f7f5ea; }
-.count-groups { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px; }
-.count-groups > div { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; max-width: 290px; padding: 10px; border: 2px solid #d7d9c7; border-radius: 16px; background: #fff; }
-.count-groups > .added { border-color: #e2b49a; }
+.operation-picker { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.operation-picker button[aria-pressed="true"] { background: var(--tint); border-color: var(--shade); }
+.operation-picker b { font-size: 1.2em; }
+.count-groups { display: flex; flex-wrap: wrap; align-items: stretch; justify-content: center; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.count-groups li { max-width: min(290px, 100%); padding: 8px; border: 2px solid #d7d9c7; border-radius: 16px; background: #fff; text-align: center; }
+.count-groups .removed { border-style: dashed; background: #f9f2e8; }
+.count-groups .removed .count-item { opacity: .55; text-decoration: line-through; }
+.count-items { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; }
+.history-region + .history-region { margin-top: 20px; }
+.history-region h2 { margin: 0 0 10px; font-size: 1.2rem; }
 .count-item { position: relative; display: grid; place-items: center; width: 52px; height: 52px; border: 2px solid transparent; border-radius: 14px; background: none; font-size: 2rem; }
 .count-item[aria-pressed="true"] { border-color: var(--shade); background: var(--tint); }
 .count-item b { position: absolute; top: -8px; right: -8px; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--shade); color: #fff; font-size: .8rem; }

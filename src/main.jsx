@@ -17,9 +17,9 @@ import './style.css';
 
 // La actividad con IA de cada zona, arriba de los ejercicios
 const agents = {
-  math:buddy => ['¡' + buddy.name + ' se equivoca!', 'Descubre su error y enséñale a sumar'],
+  math:buddy => ['¡' + buddy.name + ' se equivoca!', 'Enséñale a sumar, restar, multiplicar y dividir'],
   story:() => ['Crear un cuento con IA', 'Haz un dibujo y la IA lo convierte en un cuento'],
-  history:() => ['Viaje en el tiempo', 'Conversa por voz con personas del pasado']
+  history:() => ['Viaje en el tiempo', 'Explora épocas y culturas del mundo']
 };
 
 function Catalog({capsule, zone, buddy, progress, onHome, onSelect, onAgent, onRead}) {

@@ -1,4 +1,6 @@
-// «Viaje en el tiempo»: cada personaje solo cuenta los datos de su ficha (revisarlos con el equipo)
+import {worldGuides} from './world-history.mjs';
+
+// «Viaje en el tiempo»: cada personaje solo cuenta los datos de su ficha
 export const characters = {
   rosa:{
     name:'Abuela Rosa', emoji:'👵', voice:'Sulafat', where:'Valparaíso, Chile', year:1960,
@@ -37,7 +39,8 @@ export const characters = {
       'Antes del tren, ir de Guayaquil a Quito tomaba muchos días a caballo o en mula.',
       'En muchas casas no había luz eléctrica. Usábamos velas y lámparas de kerosén.'
     ]
-  }
+  },
+  ...worldGuides
 };
 
 export const voices = ['Leda', ...Object.values(characters).map(character => character.voice)];
@@ -52,7 +55,7 @@ export function cleanVisit(data) {
   return {character, question, turns};
 }
 
-export const visitMessages = ({character, question, turns}) => [{role:'system', content:`Eres ${character.name}. Vives en ${character.where}, en el año ${character.year}.
+export const visitMessages = ({character, question, turns}) => [{role:'system', content:`Eres ${character.name}, guía de ${character.where}. Época: ${character.era || character.year}.
 Un niño de 6 años de hoy viajó en el tiempo y conversa contigo por voz.
 Responde en primera persona, como ${character.name}, en 2 o 3 frases cortas y simples.
 Usa SOLO estos datos de tu época; no inventes fechas, nombres ni hechos:
@@ -68,4 +71,10 @@ export function cleanAnswer(raw) {
   const reply = short(raw?.reply, 400);
   if (!reply) return null;
   return {reply, before:short(raw?.before, 60), now:short(raw?.now, 60)};
+}
+
+export function preparedVisit({character, question}) {
+  const normalize = text => text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f¿?!.]/g, '').trim();
+  const lesson = character.lessons?.find(item => normalize(item.question) === normalize(question));
+  return lesson && {reply:lesson.reply, before:lesson.before, now:lesson.now};
 }

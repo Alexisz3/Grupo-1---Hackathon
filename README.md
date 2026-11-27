@@ -41,3 +41,14 @@ La pantalla final indica si se resolvió el nuevo mapa sin corrección ni pistas
 - [GCompris · Chronos](https://gcompris.net/screenshots-en.html#chronos) inspira ordenar imágenes en una secuencia. [Repositorio de GCompris](https://github.com/gcompris/GCompris-qt).
 - [Khan Academy Kids](https://www.khanacademy.org/kids/ela) inspira la narración repetible y las preguntas breves de un personaje.
 - [Drawn Worlds](https://github.com/slab10000/Mistral-AI-Hackathon-Winner_Drawn-Worlds) (ganador de la hackatón de Mistral) inspira el cuento que nace de un dibujo y el pedido de dibujar a mitad de la historia.
+
+Las cuatro operaciones se encuentran en «¡Pipo se equivoca!». El código genera y comprueba cada cálculo. La resta incluye cero y las divisiones se reparten en grupos iguales.
+
+«Viaje en el tiempo» incluye seis visitas de historia global con tres preguntas preparadas por destino. Esas respuestas funcionan sin configurar un modelo de IA. Fuentes de las fichas:
+
+- [Prehistoria y herramientas, Smithsonian](https://humanorigins.si.edu/evidence/behavior/stone-tools)
+- [Cerámica de Grecia antigua, British Museum](https://www.britishmuseum.org/sites/default/files/2019-09/Visit_Greece_Pots_KS2.pdf)
+- [Barco comercial de época vikinga, Viking Ship Museum](https://www.vikingeskibsmuseet.dk/en/visit-the-museum/exhibitions/the-five-viking-ships/skuldelev-3)
+- [Jeroglíficos de Egipto, British Museum](https://www.britishmuseum.org/sites/default/files/2025-05/Ancient-Egypt-Symbols-Visit-Resource-Ages-7-11.pdf)
+- [Ciudades y escritura mayas, The Met](https://www.metmuseum.org/ja/exhibitions/arts-of-the-ancient-americas/inside-the-exhibition)
+- [Impresión con bloques de madera en China, British Library](https://idp.bl.uk/collection/51FDAEAFB4A24E2E9981692A98130BC8/)

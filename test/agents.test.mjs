@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {cleanReply, cleanScene, cleanTeach, fillProblem, pickProblem} from '../src/math-tutor.mjs';
-import {characters, cleanAnswer, cleanVisit} from '../src/time-travel.mjs';
+import {cleanReply, cleanScene, cleanTeach, explainProblem, fillProblem, pickProblem} from '../src/math-tutor.mjs';
+import {characters, cleanAnswer, cleanVisit, preparedVisit} from '../src/time-travel.mjs';
 
 test('picks problems the code can check, with two or more things per group', () => {
   for (let run = 0; run < 500; run++) {
@@ -38,4 +38,34 @@ test('time travel only talks with known characters', () => {
   assert.equal(cleanVisit({character:'rosa', question:'  '}), null);
   assert.equal(cleanVisit({character:'kusi', question:'¿Qué comían?'}).character, characters.kusi);
   assert.equal(cleanAnswer({before:'x'}), null);
+});
+
+test('subtracts down to zero, multiplies groups and only divides into equal shares', () => {
+  const checks = {
+    subtract:({a,b,total}) => total === a - b && total >= 0,
+    multiply:({a,b,total}) => total === a * b && total <= 20,
+    divide:({a,b,total}) => b > 0 && a % b === 0 && total === a / b
+  };
+  for (const [operation, check] of Object.entries(checks)) {
+    for (let run = 0; run < 150; run++) {
+      const problem = pickProblem(run % 3, Math.random, operation);
+      assert(check(problem));
+      assert.equal(problem.claim === problem.total, problem.mistake === 'right');
+      assert(cleanTeach({problem}));
+    }
+  }
+  assert.match(explainProblem({operation:'divide',a:12,b:3,total:4}), /4 en cada grupo/);
+  assert.equal(cleanTeach({problem:{operation:'divide',a:5,b:2,total:2,claim:2}}), null);
+  assert.equal(cleanTeach({problem:{operation:'divide',a:0,b:0,total:0,claim:0}}), null);
+});
+
+test('all six world visits provide grounded answers for their three suggested questions', () => {
+  for (const character of ['stone','greek','norse','egypt','maya','china']) {
+    assert.equal(characters[character].questions.length, 3);
+    for (const question of characters[character].questions) {
+      const answer = preparedVisit(cleanVisit({character,question}));
+      assert(answer.reply && answer.before && answer.now);
+    }
+    assert.equal(preparedVisit(cleanVisit({character,question:'¿En qué año naciste?'})), undefined);
+  }
 });

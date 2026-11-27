@@ -7,7 +7,7 @@ const {extract} = require('./src/math.mjs');
 const {aiReady, chatJson, paint, pictureReady, speak, voiceReady} = require('./src/ai.mjs');
 const {characterMessages, cleanCharacter, cleanLook, cleanPage, cleanRequest, drawPage, lookMessages, storyLength, storyMessages} = require('./src/story.mjs');
 const {clampLevel, cleanReply, cleanScene, cleanTeach, fallbackScene, fillProblem, pickProblem, sceneMessages, teachMessages} = require('./src/math-tutor.mjs');
-const {cleanAnswer, cleanVisit, visitMessages, voices} = require('./src/time-travel.mjs');
+const {cleanAnswer, cleanVisit, preparedVisit, visitMessages, voices} = require('./src/time-travel.mjs');
 const db = require('./src/db.mjs');
 
 const root = path.join(__dirname, 'dist');
@@ -123,17 +123,18 @@ async function mathProblemRequest(request, response) {
   const data = await readJson(request, response, 4096);
   if (response.headersSent) return;
   const hero = {name:typeof data?.hero?.name === 'string' && data.hero.name.trim().slice(0, 24) || 'Pipo', look:typeof data?.hero?.look === 'string' ? data.hero.look.slice(0, 160) : ''};
-  const numbers = pickProblem(clampLevel(data?.level));
+  const numbers = pickProblem(clampLevel(data?.level), Math.random, data?.operation);
   let scene = null;
-  if (aiReady()) scene = await chatJson(sceneMessages(hero)).then(cleanScene, () => null);
-  json(response, 200, fillProblem(scene || fallbackScene(), numbers, hero.name));
+  if (aiReady() && numbers.operation === 'add') scene = await chatJson(sceneMessages(hero)).then(cleanScene, () => null);
+  json(response, 200, fillProblem(scene || fallbackScene(Math.random, numbers.operation), numbers, hero.name));
 }
 
 async function mathTeachRequest(request, response) {
   const lesson = cleanTeach(await readJson(request, response, 4096));
   if (response.headersSent) return;
   if (!lesson) { json(response, 400, {error:'Explicación inválida'}); return; }
-  const raw = aiReady() && lesson.explanation ? await chatJson(teachMessages(lesson.hero, lesson.problem, lesson.explanation)).catch(() => null) : null;
+  const raw = aiReady() && lesson.explanation && lesson.problem.operation === 'add'
+    ? await chatJson(teachMessages(lesson.hero, lesson.problem, lesson.explanation)).catch(() => null) : null;
   json(response, 200, {reply:cleanReply(raw, lesson.problem)});
 }
 
@@ -141,7 +142,16 @@ async function historyRequest(request, response) {
   const visit = cleanVisit(await readJson(request, response, 16384));
   if (response.headersSent) return;
   if (!visit) { json(response, 400, {error:'Pregunta inválida'}); return; }
-  if (!aiReady()) { json(response, 503, {error:'La IA no está configurada'}); return; }
+  const prepared = preparedVisit(visit);
+  if (prepared) { json(response, 200, prepared); return; }
+  if (!aiReady()) {
+    if (visit.character.lessons) {
+      json(response, 200, {reply:'Elige una de las preguntas sugeridas y la exploramos juntos.', before:'', now:''});
+    } else {
+      json(response, 503, {error:'La IA no está configurada'});
+    }
+    return;
+  }
   for (let attempt = 0; attempt < 2; attempt++) {
     const answer = await chatJson(visitMessages(visit)).then(cleanAnswer, () => null);
     if (answer) { json(response, 200, answer); return; }

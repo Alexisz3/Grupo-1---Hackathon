@@ -11,7 +11,7 @@ export const aiService = {
   // storyId y number guardan la ilustración en la base local
   picture: async (prompt, drawing, seed, storyId, number) => URL.createObjectURL(await (await post('/api/picture', {prompt, drawing, seed, storyId, number})).blob()),
   speak: async (text, voice) => (await post('/api/speak', {text, voice})).arrayBuffer(),
-  mathProblem: async (hero, level) => (await post('/api/math/problem', {hero, level})).json(),
+  mathProblem: async (hero, level, operation) => (await post('/api/math/problem', {hero, level, operation})).json(),
   mathTeach: async (hero, problem, explanation) => (await (await post('/api/math/teach', {hero, problem, explanation})).json()).reply,
   visit: async (character, question, turns) => (await post('/api/history', {character, question, turns})).json()
 };

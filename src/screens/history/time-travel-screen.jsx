@@ -16,7 +16,7 @@ export default function TimeTravelScreen({onBack, onComplete}) {
       <button type="button" className="control" onClick={character ? travel.leave : onBack}>
         <ChevronLeft size={19} /> {character ? 'Otra época' : 'Historia'}
       </button>
-      {character && <span className="progress">📍 {character.where} · {character.year}</span>}
+      {character && <span className="progress">📍 {character.where} · {character.era || character.year}</span>}
     </nav>
     <section className="workshop-panel">
       {!character && <CharacterPicker onPick={travel.visit} />}
