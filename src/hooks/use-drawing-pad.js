@@ -39,22 +39,22 @@ export function useDrawingPad() {
   }
 
   function down(event) {
-    if (!event.isPrimary || active.current) return;
+    if (!event.isPrimary || event.button !== 0 || active.current) return;
     element.current.setPointerCapture(event.pointerId);
     const xy = point(event);
-    active.current = {color, size:erasing ? size * 2.5 : size, erase:erasing, points:[xy, [xy[0] + .1, xy[1]]]};
+    active.current = {pointerId:event.pointerId, color, size:erasing ? size * 2.5 : size, erase:erasing, points:[xy, [xy[0] + .1, xy[1]]]};
     strokes.current.push(active.current);
     line(element.current.getContext('2d'), active.current, 0);
   }
 
   function move(event) {
-    if (!active.current) return;
+    if (active.current?.pointerId !== event.pointerId) return;
     active.current.points.push(point(event));
     line(element.current.getContext('2d'), active.current, active.current.points.length - 1);
   }
 
-  function up() {
-    if (!active.current) return;
+  function up(event) {
+    if (active.current?.pointerId !== event.pointerId) return;
     active.current = null;
     setCount(strokes.current.length);
   }
